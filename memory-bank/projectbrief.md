@@ -1,7 +1,7 @@
 # Project Brief
 
 ## Overview
-Building a software stack that will replace Zcashd.
+Z3: Building a modern, secure, reliable, scalable software stack that will replace Zcashd.
 
 ## Core Features
 - A full-node implementation that implements the Zcash protocol (Zebra)
@@ -16,7 +16,7 @@ Building a software stack that will replace Zcashd.
 - Operators of cryptocurrency wallet software platforms (including Zashi, Brave Wallet, etc.)
 - Operators of ASIC based proof of work miners on the Zcash blockchain
 - Operators of "finalizers" (known more commonly as validators) as Zcash prepares to transition to a hybrid Proof of Work / Proof of Stake consensus algorithm.
-
+- Operators of block explorers on the Zcash network
 
 ## Technical Preferences (optional)
 - [Zebra](https://github.com/ZcashFoundation/zebra) for the Zcash full node 
@@ -30,4 +30,3 @@ Building a software stack that will replace Zcashd.
 - Test driven development
 - Docker for deployment
 - [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) as standard for SCM commit messaging
-

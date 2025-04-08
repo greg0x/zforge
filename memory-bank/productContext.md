@@ -2,7 +2,7 @@
 
 ## Problem
 
-This project aims to replace the existing Zcashd software stack, which was forked from Bitcoin Core back in 2016. The c++ codebase has become difficult to maintain and extend. Zcashd is a monolithic application that includes full-node, indexing, and wallet functionalities. Replacing Zcashd with a modular and maintainable software stack addresses the following problems:
+The Z3 project aims to replace the existing Zcashd software stack, which was forked from Bitcoin Core back in 2016. The c++ codebase has become difficult to maintain and extend. Zcashd is a monolithic application that includes full-node, indexing, and wallet functionalities. Replacing Zcashd with a modular and maintainable software stack addresses the following problems:
 
 *   **Maintenance burden:** Zcashd's codebase is complex and challenging to maintain, leading to increased development costs and slower feature development.
 *   **Scalability limitations:** Zcashd's monolithic architecture limits its scalability and ability to handle increasing transaction volumes.
@@ -31,14 +31,16 @@ This modular architecture offers several advantages:
 The project aims to provide a secure, reliable, and efficient experience for the following target users:
 
 *   **Zcash protocol developers:** A well-documented and easy-to-use software stack that facilitates protocol development and experimentation.
-*   **Centralized cryptocurrency exchanges:** A scalable and reliable full-node implementation that supports high transaction volumes.
-*   **Decentralized cryptocurrency exchanges:** A secure and efficient indexing service that enables fast and reliable access to blockchain data.
-*   **Cryptocurrency wallet software platforms:** A secure and user-friendly CLI wallet that provides essential wallet functionalities.
+*   **Centralized cryptocurrency exchanges:** A secure, scalable and reliable modern full-node implementation that supports exchange operations (deposit, withdrawal)
+*   **Decentralized cryptocurrency exchanges:** A secure, scalable and reliable modern full-node implementation that supports decentralized exchange operations (deposit, withdrawal, swap)
+*   **Cryptocurrency wallet software platforms:** A secure and user-friendly full-node implementation that provides essential wallet functionalities. (send, receive, check balance)
+*   **Block explorers:** A scalable and reliable full-node implementation that provides fast access to archival blockchain data
 
 The key user experience goals include:
 
-*   **Security:** Protecting user funds and data from unauthorized access.
+*   **Seamless upgrade:** The user can upgrade from the legacy (Zcashd) daemon to the modern (Z3) stack without changing any of their integration code.
+*   **Security:** Protecting user funds and data from unauthorized access. Ensuring that the shielded supply remains free of counterfeiting bugs.
 *   **Reliability:** Ensuring the software stack operates consistently and without errors.
+*   **Observability:** Providing telemetry, logging and tracing to ensure proper operation in rugged production environments.
 *   **Efficiency:** Providing fast and responsive performance.
 *   **Usability:** Making the software stack easy to use and understand.
-*   **Accessibility:** Ensuring the software stack is accessible to users with disabilities.
