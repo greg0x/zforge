@@ -47,3 +47,7 @@ The key user experience goals include:
 
 ## Key Metrics
 *   **% of mainnet nodes running Z3:** 0 as of April 2025, with a target of 2025 by the time Zcashd is deprecated.  Sources for determining this metric are TBD, some potential options include [Blockchair](https://blockchair.com/zcash/nodes)
+
+## Further Reading
+
+For technical details about the architecture and implementation, see the [Technical Context](techContext.md).

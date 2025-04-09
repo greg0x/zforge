@@ -30,3 +30,8 @@ Z3: Building a modern, secure, reliable, scalable software stack that will repla
 - Test driven development
 - Docker for deployment
 - [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) as standard for SCM commit messaging
+
+## Further Reading
+
+For a detailed analysis of the problems we're solving and proposed solution, see the [Product Context](productContext.md).
+

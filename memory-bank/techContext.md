@@ -214,3 +214,7 @@ Note: While these dependencies are common, they might be used with different fea
 * API docs: Using rustdoc comments
 * Architecture docs: Using architecture decision records (ADRs)
 * User guides: Using mdBook
+
+## Further Reading
+
+For details about design patterns and conventions used across the Z3 stack, see the [System Patterns](systemPatterns.md).

@@ -38,3 +38,7 @@ graph LR
 
 *   It is not yet clear whether Zallet will communicate only with Zaino or also directly with Zebra. This will depend on the specific requirements of Zallet and the design of the interfaces between the components.
 *   There is ongoing discussion about Zaino being implemented as a library that will be integrated directly into wallet software. If this approach is adopted, users may not need to communicate with a separate Zaino service.
+
+## Further Reading
+
+For details about current implementation status and next steps, see the [Progress](progress.md) document.
