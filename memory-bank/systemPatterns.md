@@ -27,7 +27,7 @@ graph LR
 ## Component Relationships
 
 *   **User and Z3 wrapper service:** The user interacts directly with the Z3 wrapper service, which acts as a single entry point to the system. The Z3 wrapper service handles user requests and routes them to the appropriate component (Zebra, Zaino, or Zallet).
-*   **Zebra and Zaino:** Zebra provides blockchain data to Zaino via RPC or a similar mechanism. Zaino indexes this data to provide efficient access for light clients and other applications.
+*   **Zebra and Zaino:** Zebra provides blockchain data to Zaino via RPC or the ReadStateService. Zaino indexes this data to provide efficient access for light clients and other applications.
 *   **Zallet and Zebra:** Zallet interacts with Zebra for transaction submission and balance retrieval. Zallet uses Zebra's API to construct and broadcast transactions to the Zcash network.
 *   **Zallet and Zaino:** Zallet may interact with Zaino to retrieve indexed blockchain data, such as transaction history or address balances.
 *   **Z3 wrapper service and Components:** The Z3 wrapper service orchestrates interactions between Zebra, Zaino, and Zallet, providing a unified interface for users.

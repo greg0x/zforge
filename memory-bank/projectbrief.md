@@ -8,6 +8,7 @@ Z3: Building a modern, secure, reliable, scalable software stack that will repla
 - A service that provides indexing and serves light clients blockchain data (Zaino) 
 - A cli-wallet that provides wallet functionality that existed in Zcashd but that is not planned for implementation in Zebra (Zallet)
 - A wrapper service that exposes the three previously mentioned services as a "single binary" to the users
+- Enumerate all of the RPC methods that zcashd exposes
 
 ## Target Users
 - Developers of the Zcash protocol (including the Zcash Foundation, the Electric Coin Company, Shielded Labs, Zingo Labs and the broader community)
@@ -35,4 +36,3 @@ Z3: Building a modern, secure, reliable, scalable software stack that will repla
 ## Further Reading
 
 For a detailed analysis of the problems we're solving and proposed solution, see the [Product Context](productContext.md).
-

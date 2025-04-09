@@ -23,6 +23,14 @@
 *   **Security:** Security is paramount, and all components must be designed to resist attacks.
 *   **Compatibility:** The system must be compatible with the Zcash protocol and network.
 
+## RPC Methods used by Customers
+The Zcashd Deprecation team engaged with customers and found that they are using the following RPC methods in production. They discussed and came to agreement on which component in the new Z3 stack should service each of these methods. The [data](./data/zcashd_deprecation_team_rpc_method_support_9apr2025.md) here is a snapshot from the Zcashd Deprecation ["RPC Method Support" Google Sheet](https://docs.google.com/spreadsheets/d/1UJxH1cowexGqadU32Uei5Qak6jGhXjb18-T_QBPmDAA) on 9 April 2025.
+
+It is very important that the project team focuses on the [agreed upon RPC mapping](./data/rpc_mapping.md) and figures out exactly which RPC will be served by which component, as ultimately this information will be used by Z3 to route requests to the right backend service.  Note that the RPC Method Support list seems to be imcomplete, with many methods indicating that they will be served by either Zebra or Zaino or both. We urgently need to drive these decisions to ground in order to move forward.
+
+## RPC Methods exposed by Zcashd
+The following [RPC methods](./data/zcashd_RPC_methods.md) are all of the methods historically exposed by the legacy Zcashd software.
+
 ## Dependencies
 
 ### Z3 Wrapper Dependencies
@@ -66,7 +74,7 @@ TBD but generally speaking we want to use the same libraries and frameworks that
   - `metrics`: Core metrics collection and reporting
   - `metrics-exporter-prometheus`: Prometheus metrics exposition
   - `tracing`: Structured logging and diagnostics
-  - `serde`: Serialization/deserialization framework
+  - `serde`: Data serialization framework
   - `rocksdb`: Persistent key-value storage backend
   - `hyper`: HTTP/HTTPS implementation
   - `tonic`: gRPC implementation
@@ -104,7 +112,6 @@ TBD but generally speaking we want to use the same libraries and frameworks that
 * Custom Dependencies:
   - `zingolib`: Core functionality from Zingo Labs
     - Tag: `zaino_dep_005`
-    - Features: `test-elevation`
   - `zingo-infra-testutils`: Testing infrastructure
   - `zingo-infra-services`: Service infrastructure
 
@@ -216,6 +223,8 @@ Note: While these dependencies are common, they might be used with different fea
 * Architecture docs: Using architecture decision records (ADRs)
 * User guides: Using mdBook
 
+
 ## Further Reading
 
 For details about design patterns and conventions used across the Z3 stack, see the [System Patterns](systemPatterns.md).
+
