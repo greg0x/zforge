@@ -22,9 +22,7 @@ graph LR
 
 ## Design Patterns
 
-*   **Facade:** The Z3 wrapper service implements the Facade pattern, providing a simplified interface to the complex interactions between Zebra, Zaino, and Zallet.
-*   **Observer:** Zebra and Zaino may utilize the Observer pattern for event handling, allowing components to react to changes in the blockchain state.
-*   **Repository:** Zaino may employ the Repository pattern to abstract data access, simplifying data management and improving testability.
+*   **Facade:** The Z3 wrapper service implements the Facade pattern, providing a simplified interface to the complex interactions between Zebra, Zaino, and Zallet. The Z3 wrapper service receives RPC requests from users and routes them to the appropriate backend service.
 
 ## Component Relationships
 

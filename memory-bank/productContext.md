@@ -12,12 +12,12 @@ The Z3 project aims to replace the existing Zcashd software stack, which was for
 
 ## Proposed Solution
 
-This project proposes replacing Zcashd with a modular software stack consisting of the following components:
+This project proposes replacing [Zcashd](https://github.com/zcash/zcash) with a modular software stack consisting of the following components:
 
 *   **[Zebra](https://github.com/ZcashFoundation/zebra):** A full-node implementation of the Zcash protocol that provides consensus and network functionalities.  Zebra has been under development by the Zcash Foundation since 2020 and is presently deployed by a number of decentralized node operators on mainnet.
 *   **[Zaino](https://github.com/zingolabs/zaino/):** An indexing service that provides light clients with blockchain data, replacing the legacy go light client server lightwalletd. Zaino is under active development by Zingo Labs, funded by a grant from [ZCG](https://zcashcommunitygrants.org/).
 *   **[Zallet](https://github.com/zcash/wallet):** A CLI wallet that provides wallet functionality that existed in Zcashd but is not planned for implementation in Zebra.  Zallet is under active development by the Electric Coin Company.
-*   **Z3 Wrapper Service:** A wrapper service that exposes the three previously mentioned services as a "single binary" to the users.  Note that this capability could be achieved as a "single binary" that is deployed as a Debian package eg `sudo apt install zcash-z3`, or via Docker Compose or as a Helm chart.
+*   **Z3 Wrapper Service:** A new wrapper service that exposes the three previously mentioned services as a "single binary" to the users.  Note that this capability could be achieved as a "single binary" that is deployed as a Debian package eg `sudo apt install zcash-z3`, or via Docker Compose or as a Helm chart.
 
 This modular architecture offers several advantages:
 
@@ -46,7 +46,13 @@ The key user experience goals include:
 *   **Usability:** Making the software stack easy to use and understand.
 
 ## Key Metrics
-*   **% of mainnet nodes running Z3:** 0 as of April 2025, with a target of 2025 by the time Zcashd is deprecated.  Sources for determining this metric are TBD, some potential options include [Blockchair](https://blockchair.com/zcash/nodes)
+*   **% of mainnet nodes running Z3:** 0 as of April 2025, with a target of 100% by the time Zcashd is deprecated.  Sources for determining this metric are TBD, some potential options include [Blockchair](https://blockchair.com/zcash/nodes)
+*   **% of centralized exchanges upgraded to Z3:** 0 as of April 2025, with a target of 100% by the time Zcashd is deprecated.  Sources for determining this metric are TBD, and we are targeting 0 exchange de-listings due to upgrade friction.
+*   **% of decentralized exchanges upgraded to Z3:** 0 as of April 2025, with a target of 100% by the time Zcashd is deprecated.  Sources for determining this metric are TBD, and we are targeting 0 exchange de-listings due to upgrade friction.
+*   **% of wallets upgraded to Z3:** 0 as of April 2025, with a target of 100% by the time Zcashd is deprecated.  Sources for determining this metric are TBD.
+*   **% of block explorers upgraded to Z3:** 0 as of April 2025, with a target of 100% by the time Zcashd is deprecated.  Sources for determining this metric are TBD.
+*   **% of PoW hashpower lost due to Z3 upgrade:** 0% as of April 2025, with a target of <=10% by the time Zcashd is deprecated.  Sources for determining this metric are TBD. Specifically we do not want to introduce security risk to the network by making it hard for PoW miners and mining pools to update to the Z3 stack.
+
 
 ## Further Reading
 

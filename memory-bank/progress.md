@@ -10,7 +10,7 @@ The entire software stack (Zebra, Zaino, Zallet, and the wrapper service) still 
 
 ## Current Status
 
-The project is in the initial planning and documentation phase. The Memory Bank is being established as a central repository for project knowledge.
+The project is in the initial planning and documentation phase. The Memory Bank is being established as a central repository for project knowledge. The core memory bank files have been reviewed and updated.
 
 ## Known Issues
 

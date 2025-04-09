@@ -1,7 +1,7 @@
 # Project Brief
 
 ## Overview
-Z3: Building a modern, secure, reliable, scalable software stack that will replace Zcashd.
+Z3: Building a modern, secure, reliable, scalable software stack that will replace [Zcashd](https://github.com/zcash/zcash).
 
 ## Core Features
 - A full-node implementation that implements the Zcash protocol (Zebra)
@@ -18,11 +18,12 @@ Z3: Building a modern, secure, reliable, scalable software stack that will repla
 - Operators of "finalizers" (known more commonly as validators) as Zcash prepares to transition to a hybrid Proof of Work / Proof of Stake consensus algorithm.
 - Operators of block explorers on the Zcash network
 
-## Technical Preferences (optional)
+## Technical Preferences
+- [Zcashd](https://github.com/zcash/zcash) is the legacy software that is being replaced
 - [Zebra](https://github.com/ZcashFoundation/zebra) for the Zcash full node 
 - [Zaino](https://github.com/zingolabs/zaino/) for the indexing service that will interface with Zebrad via RPC and the ReadStateService, and also replace the legacy go light client server [lightwalletd](https://github.com/zcash/lightwalletd)
 - [Zallet](https://github.com/zcash/wallet) for the cli-wallet that will replace the wallet functionality that originally existed in Zcashd
-- Other software components should be Rust based
+- The Z3 wrapper software that is the primary software deliverable of this project should be written in Rust, unless there is a *really* good reason to use another language or framework.
 - Security is of paramount importance
 - Clippy as the Rust linter of choice
 - Git and Github for SCM
