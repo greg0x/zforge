@@ -2,7 +2,7 @@
 
 ## Working Functionality
 
-The Memory Bank is functional and being actively maintained. The core files (`projectbrief.md`, `productContext.md`, `systemPatterns.md`, `techContext.md`, `activeContext.md`, and `progress.md`) are being used to document the project.  RPC's exposed by Zcashd have been enumerated and documented. RPC's that have been surfaced by customers have been documented, and the Z3 development teams have mostly agreed upon which service (Zebra, Zaino or Zallet) will serve which method.
+The Memory Bank is functional and being actively maintained. The core files (`projectbrief.md`, `productContext.md`, `systemPatterns.md`, `techContext.md`, `activeContext.md`, and `progress.md`) are being used to document the project.  RPC's exposed by Zcashd have been enumerated and documented. RPC's that have been surfaced by customers have been documented, and the Z3 development teams have mostly agreed upon which service (Zebra, Zaino or Zallet) will serve which method.  See the [RPC to service map](./data/rpc_mapping.md) for reference.
 
 ## Functionality Left To Build
 
