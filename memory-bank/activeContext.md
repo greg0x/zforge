@@ -6,7 +6,7 @@ Updating the Memory Bank, specifically reviewing and updating the core files (`p
 
 ## Recent Changes
 
-Updated the `productContext.md`, `systemPatterns.md`, and `techContext.md` files with information about the project's problems, proposed solution, user experience goals, system architecture, technologies used, and development setup. The `productContext.md` file was further updated to refine the "User Experience Goals" section. The `systemPatterns.md` file was updated to reflect the user's interaction with the Z3 wrapper service and the potential communication paths between Zallet, Zaino, and Zebra.
+Updated the `productContext.md`, `systemPatterns.md`, and `techContext.md` files with information about the project's problems, proposed solution, user experience goals, system architecture, technologies used, and development setup. The `productContext.md` file was further updated to refine the "User Experience Goals" section and add a "Key Metrics" section. The `systemPatterns.md` file was updated to reflect the user's interaction with the Z3 wrapper service and the potential communication paths between Zallet, Zaino, and Zebra. The `systemPatterns.md` file was further updated to rename "Wrapper Service" to "Z3 wrapper service". The `techContext.md` file was updated to include links to the repositories for Zebra, Zaino, and Zallet, and to provide more detailed information about dependencies and tool usage patterns.
 
 ## Next Steps
 

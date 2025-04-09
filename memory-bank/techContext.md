@@ -2,10 +2,12 @@
 
 ## Technologies Used
 
+*   **[Zebra](https://github.com/ZcashFoundation/zebra):** A full-node implementation of the Zcash protocol that provides consensus and network functionalities in Rust.  Zebra has been under development by the Zcash Foundation since 2020 and is presently deployed by a number of decentralized node operators on mainnet.
+*   **[Zaino](https://github.com/zingolabs/zaino/):** An indexing service that provides light clients with blockchain data, replacing the legacy go light client server lightwalletd. Zaino is under active development by Zingo Labs, funded by a grant from [ZCG](https://zcashcommunitygrants.org/).
+*   **[Zallet](https://github.com/zcash/wallet):** A CLI wallet that provides wallet functionality that existed in Zcashd but is not planned for implementation in Zebra.  Zallet is under active development by the Electric Coin Company.
 *   **Rust:** Primary language for Zebra, Zaino, and Zallet (version TBD). Justification: Security, performance, and memory safety.
-*   **gRPC:** For communication between Zebra and Zaino (version TBD). Justification: Efficient and standardized RPC framework.
+*   **gRPC:** In consideration for communication between Zebra and Zaino (version TBD). Justification: Efficient and standardized RPC framework.
 *   **Docker:** For deployment and containerization (version TBD). Justification: Consistent and reproducible environments.
-*   **Potentially: RocksDB or similar embedded database for Zaino's indexing** (version TBD). Justification: Efficient storage and retrieval of blockchain data.
 
 ## Development Setup
 
@@ -22,13 +24,193 @@
 
 ## Dependencies
 
-*   `zebra-chain`, `zebra-consensus`, `zebra-network`, `zebra-state`: Zebra's core crates for blockchain functionality.
-*   `tokio`: Asynchronous runtime for Rust.
-*   `anyhow`: Flexible error handling library.
+### Z3 Wrapper Dependencies
+TBD but generally speaking we want to use the same libraries and frameworks that the ZF Engineering team is familiar and comfortable with based on its work on Zebra.
+
+### Zebra Dependencies
+* Core crates:
+  - `zebra-chain`: Core data structures and crypto primitives for the Zcash protocol
+  - `zebra-consensus`: Consensus rules implementation and block validation
+  - `zebra-network`: P2P networking stack and peer management
+  - `zebra-state`: Chain state management and block storage
+  - `zebra-rpc`: JSON-RPC and gRPC server implementations
+  - `zebra-script`: Bitcoin script verification engine for transparent transactions
+  - `zebra-node-services`: Shared services used across multiple Zebra components
+  - `zebra-scan`: Block and transaction scanning utilities
+  - `zebra-grpc`: gRPC service definitions and implementations
+  - `zebra-utils`: Common utilities and helper functions
+  - `zebra-test`: Shared test infrastructure and helpers
+  - `tower-batch-control`: Custom Tower middleware for batch control
+  - `tower-fallback`: Custom Tower middleware for fallback handling
+  - `zebrad`: Main executable binary crate
+
+* Zcash Dependencies:
+  - `halo2`: Zero-knowledge proof system used for Orchard shielded transactions
+  - `orchard`: Implementation of the Orchard shielded pool protocol
+  - `zcash_primitives`: Core Zcash cryptographic primitives
+  - `zcash_proofs`: Zero-knowledge proof implementations
+  - `zcash_client_backend`: Client functionality shared between wallets
+  - `zcash_address`: Zcash address handling and encoding
+  - `zcash_encoding`: Binary serialization for Zcash types
+  - `zcash_history`: Block chain history handling
+  - `zip32`: Hierarchical deterministic wallets for Zcash
+  - `sapling-crypto`: Sapling zk-SNARK circuit implementations
+  - `incrementalmerkletree`: Incremental Merkle tree implementation
+
+* External dependencies:
+  - `tokio`: Asynchronous runtime and utilities
+  - `tower`: Service architecture and middleware
+  - `futures`: Async/await primitives and utilities
+  - `blake2b_simd`: High-performance hashing implementation
+  - `metrics`: Core metrics collection and reporting
+  - `metrics-exporter-prometheus`: Prometheus metrics exposition
+  - `tracing`: Structured logging and diagnostics
+  - `serde`: Serialization/deserialization framework
+  - `rocksdb`: Persistent key-value storage backend
+  - `hyper`: HTTP/HTTPS implementation
+  - `tonic`: gRPC implementation
+  - `jsonrpsee`: JSON-RPC framework    
+  - `reqwest`: HTTP client
+  - `color-eyre`: Error reporting and handling
+  - `proptest`: Property-based testing framework
+  - `insta`: Snapshot testing support
+  - `criterion`: Benchmarking framework
+
+### Zaino Dependencies
+
+* Core crates:
+  - `zaino-serve`: Service implementation for light clients 
+  - `zaino-state`: State management and storage
+  - `zaino-fetch`: Data fetching from Zebra nodes
+  - `zaino-proto`: gRPC protocol definitions
+  - `zaino-testutils`: Testing utilities
+  - `zainod`: Main executable binary
+
+* Zcash Dependencies:
+  - `zcash_client_backend`: Modified version of librustzcash client backend
+    - Custom fork: `zingolabs/librustzcash`
+    - Tag: `zcash_client_sqlite-0.12.1_plus_zingolabs_changes-test_2`
+    - Features: `lightwalletd-tonic`
+  - `zcash_protocol`: Protocol definitions from librustzcash
+    - Custom fork: `zingolabs/librustzcash`
+    - Tag: `zcash_client_sqlite-0.12.1_plus_zingolabs_changes-test_2`
+
+* Zebra Dependencies:
+  - `zebra-chain`: Core data structures (from `main` branch)
+  - `zebra-state`: State management (from `main` branch)
+  - `zebra-rpc`: RPC interfaces (from `main` branch)
+
+* Custom Dependencies:
+  - `zingolib`: Core functionality from Zingo Labs
+    - Tag: `zaino_dep_005`
+    - Features: `test-elevation`
+  - `zingo-infra-testutils`: Testing infrastructure
+  - `zingo-infra-services`: Service infrastructure
+
+* External Dependencies:
+  - `tokio`: Async runtime with full feature set
+  - `tokio-stream`: Stream utilities for async data processing
+  - `tonic`: gRPC implementation and server framework
+  - `tonic-build`: gRPC code generation
+  - `tower`: Service architecture with buffer and util features
+  - `tracing`: Logging infrastructure
+  - `reqwest`: HTTP client with rustls-tls support
+  - `lmdb`: Lightning Memory-Mapped Database
+  - `dashmap`: Thread-safe concurrent HashMap
+  - `indexmap`: Hash table with deterministic iteration
+  - `crossbeam-channel`: Multi-producer multi-consumer channels
+
+### Zallet Dependencies
+* Core crate:
+  - `zallet`: Main wallet implementation including CLI interface and core functionality
+
+* Zcash Dependencies:
+  - `zcash_client_backend`: Wallet functionality from librustzcash
+  - `zcash_client_sqlite`: SQLite storage implementation
+  - `zcash_primitives`: Core cryptographic primitives
+  - `zcash_keys`: Key management
+  - `zcash_protocol`: Protocol definitions
+  - `orchard`: Orchard shielded pool support
+  - `sapling`: Sapling shielded pool support
+  - `transparent`: Transparent address support
+  - `zip32`: HD wallet key derivation
+Note that all of the Zcash dependencies in Zallet are presently pinned to a specific revision of Librustzcash. 
+
+* External Dependencies:
+  - `tokio`: Async runtime and utilities
+  - `abscissa_core`: Application framework
+  - `deadpool-sqlite`: SQLite connection pooling
+  - `rusqlite`: SQLite database access
+  - `age`: File encryption
+  - `clap`: Command line argument parsing
+  - `jsonrpsee`: JSON-RPC client
+  - `tonic`: gRPC client (temporary for lightwalletd)
+
+### Common Dependencies
+
+* Runtime and async:
+  - `tokio`: Async runtime used by all components
+  - `tower`: Service architecture and middleware
+
+* Observability:
+  - `tracing`: Logging and diagnostics infrastructure used across all components
+  
+* Serialization:
+  - `serde`: Data serialization framework
+
+* RPC:
+  - `tonic`: gRPC implementation (used by all, though Zallet's usage is temporary)
+  - `jsonrpsee`: JSON-RPC framework (Zebra and Zallet)
+
+* Error handling:
+  - `color-eyre`: Error reporting and handling
+
+* CLI:
+  - `clap`: Command-line argument parsing
+
+Note: While these dependencies are common, they might be used with different feature flags or versions across the components. The exact versions should be coordinated to ensure compatibility when integrating the components.
 
 ## Tool Usage Patterns
 
-*   `cargo`: For building, testing, and managing dependencies.
-*   `clippy`: For linting and code quality checks.
-*   `git`: For version control and collaboration.
-*   `docker`: For building and running containers.
+### Build Tools
+* `cargo`: 
+  - Building: `cargo build --release`
+  - Testing: `cargo test`
+  - Dependency management: `cargo update`
+  - Documentation: `cargo doc --no-deps`
+  - Workspace management: `cargo workspace`
+
+### Code Quality
+* `clippy`:
+  - Standard linting: `cargo clippy`
+  - Strict checks: `cargo clippy -- -D warnings`
+  - Workspace checks: `cargo clippy --workspace`
+* `fmt`:
+  - Code formatting: `cargo fmt`
+  - Format check: `cargo fmt -- --check`
+
+### Version Control
+* `git`:
+  - Branch management: Using feature branches
+  - Commit messages: Following Conventional Commits spec
+  - Code review: GitHub pull request workflow
+  - Tagging: Semantic versioning for releases
+
+### Containerization
+* `docker`:
+  - Local development: Docker Compose for service orchestration
+  - Testing: Isolated test environments
+  - CI/CD: GitHub Actions with Docker caching
+  - Production: Multi-stage builds for minimal images
+
+### Testing
+* Unit tests: Per-module tests using `#[cfg(test)]`
+* Integration tests: Using `tests/` directory
+* Property testing: Using `proptest`
+* Snapshot testing: Using `insta`
+* Benchmarking: Using `criterion`
+
+### Documentation
+* API docs: Using rustdoc comments
+* Architecture docs: Using architecture decision records (ADRs)
+* User guides: Using mdBook
