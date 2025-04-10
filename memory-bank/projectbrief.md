@@ -16,7 +16,7 @@ Z3: Building a modern, secure, reliable, scalable software stack that will repla
 - Operators of cryptocurrency wallet software platforms (including Zashi, Brave Wallet, etc.)
 - Operators of ASIC based proof of work miners on the Zcash blockchain
 - Operators of "finalizers" (known more commonly as validators) as Zcash prepares to transition to a hybrid Proof of Work / Proof of Stake consensus algorithm.
-- Operators of block explorers on the Zcash network
+- Operators of block explorers on the Zcash network. We can leverage the [open source Nighthawk explorer](https://github.com/nighthawk-apps/zcash-explorer) (which is unfortunately no longer maintained) as a proof of concept application consuming the Z3 stack while it's under development. There is [work already underway](https://github.com/ZcashFoundation/zebra/issues/8435) to get this explorer working with Zebra.
 
 ## Technical Preferences
 - [Zcashd](https://github.com/zcash/zcash) is the legacy software that is being replaced
