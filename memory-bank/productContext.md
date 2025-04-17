@@ -38,7 +38,7 @@ The project aims to provide a secure, reliable, and efficient experience for the
 
 The key user experience goals include:
 
-*   **Seamless upgrade:** The user can upgrade from the legacy (Zcashd) daemon to the modern (Z3) stack without changing any of their integration code.
+*   **Seamless upgrade:** The user can upgrade from the legacy (Zcashd) daemon to the modern (Z3) stack without changing any of their integration code.  Note that this goal is presently disputed with engineers from the ECC team stating that it's not feasible to make Z3 a "drop in replacement" for Zcashd without adding ~6mos of work to the schedule.  They are presently tracking breaking changes to the wallet RPC's in [this Github issue](https://github.com/zcash/wallet/issues/41).
 *   **Security:** Protecting user funds and data from unauthorized access. Ensuring that the shielded supply remains free of counterfeiting bugs.
 *   **Reliability:** Ensuring the software stack operates consistently and without errors.
 *   **Observability:** Providing telemetry, logging and tracing to ensure proper operation in rugged production environments.

@@ -2,25 +2,87 @@
 
 ## Current Focus
 
-Develop an architecture for the Z3 wrapper application that will allow it to correctly route RPC requests to Zebra, Zaino or Zallet.
+1. **Docker Orchestration:**
+   - Completed investigation of Zebra and Zaino Docker configurations.
+   - Documented Docker/orchestration findings in z3_docker.md.
+   - Next: Research Zallet's Docker requirements for full stack integration.
 
-Updating the Memory Bank, specifically reviewing and updating the core files (`projectbrief.md`, `productContext.md`, `systemPatterns.md`, `techContext.md`, `activeContext.md`, and `progress.md`).
+2. **Z3 Stack Integration:**
+   - Planning unified Docker Compose for all components.
+   - Identifying volume management and networking requirements.
+   - Need to verify service communication patterns.
+
+3. **Production Readiness:**
+   - Developing monitoring and observability setup.
+   - Planning health checks and logging configuration.
+   - Exploring backup and recovery procedures.
+
+4. **Documentation:**
+   - Maintaining comprehensive Memory Bank updates.
+   - Documenting Docker deployment patterns.
+   - Creating configuration and troubleshooting guides.
 
 ## Recent Changes
 
-Read all memory bank files (`projectbrief.md`, `productContext.md`, `systemPatterns.md`, `techContext.md`, `activeContext.md`, and `progress.md`).
-Enumerated all of the RPC methods that zcashd exposes.  Reviewed the list of RPC methods that customers said they depend on, and the [mapping](./data/rpc_mapping.md) (proposed by the Zcashd Deprecation Team) of which RPC method should be handled by which service in the new architecture.
+1. **Docker Investigation:**
+   - Analyzed Zebra's multi-stage Dockerfile and compose configurations.
+   - Examined Zaino's Docker setup and runtime requirements.
+   - Created z3_docker.md to document findings and orchestration plan.
+   - Identified key configuration patterns and integration points.
+
+2. **RPC Integration:**
+   - Mapped RPC methods to services using [RPC mapping](./data/rpc_mapping.md).
+   - Identified service communication paths for Docker networking.
+   - Examined Zebra and Zaino configuration for RPC endpoints.
 
 ## Active Decisions
 
-No active decisions are currently being made.
+1. **Docker Architecture:**
+   - Use multi-stage builds for all components
+   - Implement secure defaults (non-root users, TLS)
+   - Standardize volume management patterns
+   - Plan for production monitoring
+
+2. **Configuration Management:**
+   - Use TOML configs mounted into containers
+   - Implement consistent environment variable patterns
+   - Plan for secrets management
 
 ## Important Patterns
 
-The importance of maintaining a comprehensive and up-to-date Memory Bank is a key pattern for this project. All decisions and changes should be documented in the Memory Bank to ensure consistency and knowledge sharing.
+1. **Memory Bank Maintenance:**
+   - Keep documentation synchronized with implementation
+   - Document all configuration options and rationale
+   - Track deployment patterns and decisions
+
+2. **Docker Best Practices:**
+   - Multi-stage builds for efficient images
+   - Non-root users for security (UIDs 10001, 2003)
+   - Volume management for persistent data
+   - Service isolation and clear network boundaries
+
+3. **Configuration Patterns:**
+   - TOML files for service configuration
+   - Environment variables for runtime settings
+   - Consistent volume mount points
+   - Standard logging and metrics exposure
 
 ## Learnings and Insights
 
-The project brief provides a good overview of the project's goals and requirements, which is essential for making informed decisions. The modular architecture of the system allows for independent development and deployment of components.
+1. **Docker Architecture:**
+   - Zebra's Docker setup provides a robust template for production deployment
+   - Zaino's configuration allows flexible validator integration
+   - Volume management is critical for state persistence
+   - Service networking needs careful planning for security
 
-The RPC method support file provides a valuable overview of which RPC methods are most important to support in the new Z3 stack. This information will be used to guide the development of the Z3 wrapper around the Zebra, Zaino, and Zallet components.
+2. **Integration Patterns:**
+   - RPC routing determines network architecture
+   - Service discovery via Docker DNS
+   - Configuration must align across services
+   - Monitoring needs coordinated across stack
+
+3. **Project Architecture:**
+   - Modular components enable independent scaling
+   - Shared patterns improve maintainability
+   - Security considerations affect all layers
+   - Documentation crucial for successful deployment

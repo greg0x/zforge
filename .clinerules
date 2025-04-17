@@ -59,6 +59,9 @@ flowchart TD
    - Known issues
    - Evolution of project decisions
 
+7. `z3_docker.md`
+    - Documents what we know so far about how to best Dockerize the Z3 components in a single Compose file
+
 ### Additional Context
 Create additional files/folders within memory-bank/ when they help organize:
 - Complex feature documentation
