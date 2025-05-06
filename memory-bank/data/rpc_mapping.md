@@ -1,3 +1,5 @@
+# source: https://docs.google.com/spreadsheets/d/1UJxH1cowexGqadU32Uei5Qak6jGhXjb18-T_QBPmDAA/edit?gid=0#gid=0
+
 | RPC Method | Where in new stack | Actions |
 |---|---|---|
 | `getaddressbalance` | Zebra (lightwalletd usage) / Zaino | Review implementation in Zebra |

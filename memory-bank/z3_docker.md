@@ -130,3 +130,6 @@ networks:
    - Document all config options
    - Provide example compose files
    - Add troubleshooting guide
+
+## Related work
+Review the Helm charts created by https://github.com/zecrocks/zcash-stack to get a sense of how this project is running Zcash infrastructure in production.

@@ -46,7 +46,7 @@ The key user experience goals include:
 *   **Usability:** Making the software stack easy to use and understand.
 
 ## Key Metrics
-*   **% of mainnet nodes running Z3:** 0 as of April 2025, with a target of 100% by the time Zcashd is deprecated.  Sources for determining this metric are TBD, some potential options include [Blockchair](https://blockchair.com/zcash/nodes)
+*   **% of mainnet nodes running Z3:** 0 as of April 2025, with a target of 100% by the time Zcashd is deprecated.  Sources for determining this metric are TBD, some potential options include [Blockchair](https://blockchair.com/zcash/nodes), but the data at [zcashexplorer.app](https://mainnet.zcashexplorer.app/nodes) appears to be much better. TODO: figure out if they have an API.
 *   **% of centralized exchanges upgraded to Z3:** 0 as of April 2025, with a target of 100% by the time Zcashd is deprecated.  Sources for determining this metric are TBD, and we are targeting 0 exchange de-listings due to upgrade friction.
 *   **% of decentralized exchanges upgraded to Z3:** 0 as of April 2025, with a target of 100% by the time Zcashd is deprecated.  Sources for determining this metric are TBD, and we are targeting 0 exchange de-listings due to upgrade friction.
 *   **% of wallets upgraded to Z3:** 0 as of April 2025, with a target of 100% by the time Zcashd is deprecated.  Sources for determining this metric are TBD.

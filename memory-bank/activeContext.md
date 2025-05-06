@@ -30,7 +30,10 @@
    - Created z3_docker.md to document findings and orchestration plan.
    - Identified key configuration patterns and integration points.
 
-2. **RPC Integration:**
+2. **Zebra Adoption Tracking Script:**
+   - Created and debugged `analyze_nodes.sh` to parse zcashexplorer.com HTML for Zebra and MagicBean node counts.
+
+3. **RPC Integration:**
    - Mapped RPC methods to services using [RPC mapping](./data/rpc_mapping.md).
    - Identified service communication paths for Docker networking.
    - Examined Zebra and Zaino configuration for RPC endpoints.

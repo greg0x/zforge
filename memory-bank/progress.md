@@ -6,6 +6,7 @@
    - Core files actively maintained and updated
    - New z3_docker.md documents containerization findings
    - RPC mapping documented and service assignments agreed upon
+   - Created and debugged `analyze_nodes.sh` script for tracking Zebra and MagicBean node counts
 
 2. **Docker Configuration:**
    - Zebra's Docker setup analyzed and documented
