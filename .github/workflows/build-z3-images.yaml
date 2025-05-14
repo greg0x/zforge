@@ -1,0 +1,35 @@
+name: Build z3 images
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+    paths:
+      - '.github/workflows/build-z3-images.yml'
+
+  pull_request:
+    paths:
+      - '.github/workflows/build-z3-images.yml'
+
+jobs:
+  build:
+    name: Build zaino Docker
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    uses: ./.github/workflows/sub-build-docker-image.yaml
+    with:
+      repository: zingolabs/zaino
+      ref: 'dev'
+      dockerfile_path: ./Dockerfile
+      dockerfile_target: tests
+      image_name: zaino
+      no_cache: ${{ inputs.no_cache || false }}
+      rust_backtrace: full
+      rust_lib_backtrace: full
+      rust_log: info
