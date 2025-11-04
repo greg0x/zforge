@@ -28,14 +28,11 @@ This project orchestrates Zebra, Zaino, and Zallet to provide a modern, modular 
 
 ## Quick Start (TLDR)
 
-**Apple Silicon / ARM64 Users:** For 20x faster builds, enable native ARM64 support by setting `DOCKER_PLATFORM=linux/arm64` in `.env` (see [Platform Configuration](#2-platform-configuration-apple-silicon--arm64)).
-
-For experienced users who know Docker and blockchain nodes:
+**Using Pre-Built Images (Fastest):**
 
 ```bash
 # 1. Clone and setup
 git clone https://github.com/ZcashFoundation/z3 && cd z3
-git submodule update --init --recursive
 openssl req -x509 -newkey rsa:4096 -keyout config/tls/zaino.key -out config/tls/zaino.crt -sha256 -days 365 -nodes -subj "/CN=localhost"
 rage-keygen -o config/zallet_identity.txt
 
@@ -50,19 +47,81 @@ docker compose up -d zebra
 docker compose up -d
 ```
 
+**Building Locally (For Development):**
+
+```bash
+# 1. Clone and setup (same as above, plus submodules)
+git clone https://github.com/ZcashFoundation/z3 && cd z3
+git submodule update --init --recursive
+openssl req -x509 -newkey rsa:4096 -keyout config/tls/zaino.key -out config/tls/zaino.crt -sha256 -days 365 -nodes -subj "/CN=localhost"
+rage-keygen -o config/zallet_identity.txt
+
+# 2. Review config/zallet.toml and .env as above
+
+# 3. Build from local submodules
+docker compose build
+
+# 4-5. Start services as above
+docker compose up -d zebra
+# ... wait for sync, then:
+docker compose up -d
+```
+
+**Note for ARM64 Users:** For optimal build performance on Apple Silicon or ARM64 Linux, set `DOCKER_PLATFORM=linux/arm64` in `.env` (see [Platform Configuration](#2-platform-configuration-apple-silicon--arm64)).
+
 **First time?** Read the full [Setup](#setup) and [Running the Stack](#running-the-stack) sections below.
 
 ## ⚠️ Important: Docker Images Notice
 
 **This repository builds and hosts Docker images for testing purposes only.**
 
-- **Images use unstable development branches**:
-  - Zebra: `main` branch (latest development)
-  - Zaino: `dev` branch (unstable features)
-  - Zallet: `main` branch (under active development)
+### Pre-Built Development Images
 
-- **Purpose**: Enable rapid testing and iteration of the Z3 stack
-- **Not suitable for production use**: These images may contain bugs, breaking changes, or experimental features
+For convenience, Z3 provides pre-built Docker images that are automatically built from upstream development branches:
+
+- **ghcr.io/zcashfoundation/zebra:edge** - Built from [ZcashFoundation/zebra](https://github.com/ZcashFoundation/zebra) `main` branch
+- **ghcr.io/zcashfoundation/zaino:edge** - Built from [zingolabs/zaino](https://github.com/zingolabs/zaino) `dev` branch
+- **ghcr.io/zcashfoundation/zallet:edge** - Built from [zcash/wallet](https://github.com/zcash/wallet) `main` branch
+
+**Image Snapshot (as of 2025-11-04):**
+- Zebra: commit `7a7572f` (2025-10-29)
+- Zaino: commit `2e2c768` (2025-11-04)
+- Zallet: commit `a7148cd` (2025-10-31)
+
+### Usage Options
+
+**Option 1: Use Pre-Built Images (Default, Fastest)**
+
+The `docker-compose.yml` includes pre-built images that will be pulled automatically:
+
+```bash
+docker compose up -d
+```
+
+Docker will pull the `:edge` images from GitHub Container Registry. No build time required.
+
+**Option 2: Build Locally**
+
+To build from local submodules (useful for testing local changes):
+
+```bash
+# Initialize submodules if not already done
+git submodule update --init --recursive
+
+# Build from local source
+docker compose build
+
+# Start services with local builds
+docker compose up -d
+```
+
+When you build locally, Docker Compose creates local images that take precedence over pulling remote images.
+
+### Important Warnings
+
+- **Images use unstable development branches**: These contain the latest features but may have bugs or breaking changes
+- **Not suitable for production use**: For production, use official releases (see below)
+- **Images are updated periodically**: The `:edge` tag moves forward as we rebuild from upstream development branches
 
 **For production deployments:**
 - Use official release images from respective projects:
@@ -70,8 +129,6 @@ docker compose up -d
   - Zaino: Official releases when available
   - Zallet: Official releases when available
 - Or build from stable release tags yourself
-
-If you're testing or developing, the pre-built images from this repository provide a convenient way to quickly spin up the full Z3 stack.
 
 ## Prerequisites
 
@@ -119,17 +176,22 @@ Sync time varies based on CPU speed, disk I/O (SSD vs HDD), and network bandwidt
 
 ## Setup
 
-1. **Clone the Repository and Submodules:**
+1. **Clone the Repository:**
 
-    Clone the `z3` repository and initialize its submodules (Zebra, Zaino, Zallet):
+    Clone the `z3` repository:
 
     ```bash
     git clone https://github.com/ZcashFoundation/z3
     cd z3
-    git submodule update --init --recursive
     ```
 
-    The Docker Compose setup builds all images locally from submodules by default.
+    **Using Pre-Built Images (Recommended):** Submodules are not required. Skip to step 2.
+
+    **Building Locally (Optional):** Initialize submodules to build from source:
+
+    ```bash
+    git submodule update --init --recursive
+    ```
 
 2. **Platform Configuration (Apple Silicon / ARM64):**
 

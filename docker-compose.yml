@@ -1,8 +1,9 @@
 services:
   zebra:
-    # Local submodule build (recommended for testing/development)
-    # For production, use official releases: docker.io/zfnd/zebra:latest
-    # See README.md "Docker Images Notice" for details
+    # Pre-built image: ghcr.io/zcashfoundation/zebra:edge
+    # Built from ZcashFoundation/zebra:main - commit 7a7572f (2025-10-29)
+    # Run 'docker compose build' to build locally from ./zebra submodule instead
+    image: ghcr.io/zcashfoundation/zebra:edge
     build:
       context: ./zebra
       dockerfile: docker/Dockerfile
@@ -38,9 +39,10 @@ services:
       start_period: 90s
 
   zaino:
-    # Local submodule build (recommended for testing/development)
-    # For production, use official releases when available
-    # See README.md "Docker Images Notice" for details
+    # Pre-built image: ghcr.io/zcashfoundation/zaino:edge
+    # Built from zingolabs/zaino:dev - commit 2e2c768 (2025-11-04)
+    # Run 'docker compose build' to build locally from ./zaino submodule instead
+    image: ghcr.io/zcashfoundation/zaino:edge
     build:
       context: ./zaino
       dockerfile: Dockerfile
@@ -90,9 +92,10 @@ services:
       start_period: 60s
 
   zallet:
-    # Local submodule build (recommended for testing/development)
-    # For production, use official releases when available
-    # See README.md "Docker Images Notice" for details
+    # Pre-built image: ghcr.io/zcashfoundation/zallet:edge
+    # Built from zcash/wallet:main - commit a7148cd (2025-10-31)
+    # Run 'docker compose build' to build locally from ./zallet submodule instead
+    image: ghcr.io/zcashfoundation/zallet:edge
     build:
       context: ./zallet
       dockerfile: Dockerfile
