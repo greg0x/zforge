@@ -1,16 +1,13 @@
 services:
   zebra:
-    # Pre-built image: ghcr.io/zcashfoundation/zebra:edge
-    # Built from ZcashFoundation/zebra:main - commit 7a7572f (2025-10-29)
     # Run 'docker compose build' to build locally from ./zebra submodule instead
-    image: ghcr.io/zcashfoundation/zebra:edge
+    image: zfnd/zebra:3.1.0
     build:
       context: ./zebra
       dockerfile: docker/Dockerfile
       target: runtime
     container_name: z3_zebra
     restart: unless-stopped
-    platform: ${DOCKER_PLATFORM:-linux/amd64}
     env_file:
       - ./.env
     environment:
@@ -39,10 +36,11 @@ services:
       start_period: 90s
 
   zaino:
-    # Pre-built image: ghcr.io/zcashfoundation/zaino:edge
-    # Built from zingolabs/zaino:dev - commit 2e2c768 (2025-11-04)
-    # Run 'docker compose build' to build locally from ./zaino submodule instead
-    image: ghcr.io/zcashfoundation/zaino:edge
+    # No pre-built image available for this commit - must build locally
+    # Built from zingolabs/zaino:dev - commit 66b3199f (before config restructure)
+    # Run 'docker compose build zaino' to build from ./zaino submodule
+    image: ghcr.io/zcashfoundation/zaino:sha-934f857
+    platform: ${DOCKER_PLATFORM:-linux/amd64}
     build:
       context: ./zaino
       dockerfile: Dockerfile
@@ -92,10 +90,11 @@ services:
       start_period: 60s
 
   zallet:
-    # Pre-built image: ghcr.io/zcashfoundation/zallet:edge
-    # Built from zcash/wallet:main - commit a7148cd (2025-10-31)
-    # Run 'docker compose build' to build locally from ./zallet submodule instead
-    image: ghcr.io/zcashfoundation/zallet:edge
+    # No pre-built image available - must build locally
+    # Built from zcash/wallet commit 60b0235 (uses zaino 13919816, before config restructure)
+    # Run 'docker compose build zallet' to build from ./zallet submodule
+    image: z3-zallet:local
+    platform: ${DOCKER_PLATFORM:-linux/amd64}
     build:
       context: ./zallet
       dockerfile: Dockerfile
@@ -104,14 +103,14 @@ services:
     user: "65532:65532"
     command: ["--datadir", "/var/lib/zallet", "start"]
     depends_on:
-      zaino:
+      zebra:
         condition: service_healthy
     env_file:
       - ./.env
     environment:
       - RUST_LOG=${ZALLET_RUST_LOG}
-      - ZALLET_NETWORK=${NETWORK_NAME}
-      - ZALLET_RPC_BIND=0.0.0.0:${ZALLET_RPC_PORT}
+      # Zallet configuration is handled via config/zallet.toml
+      # Environment variable overrides are currently not supported by Zallet
     volumes:
       # Wallet database (defaults to named volume 'zallet_data')
       - ${Z3_ZALLET_DATA_PATH}:/var/lib/zallet

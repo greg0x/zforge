@@ -1,134 +1,144 @@
 # Z3 - Unified Zcash Stack
 
-This project orchestrates Zebra, Zaino, and Zallet to provide a modern, modular Zcash software stack, intended to replace the legacy `zcashd`.
+A modern, modular Zcash software stack combining Zebra, Zaino, and Zallet to replace the legacy `zcashd`.
 
 ## Table of Contents
 
-- [Quick Start (TLDR)](#quick-start-tldr)
-- [Docker Images Notice](#-important-docker-images-notice)
+- [Quick Start](#quick-start)
+- [Understanding the Architecture](#understanding-the-architecture)
+- [Docker Images](#docker-images)
 - [Prerequisites](#prerequisites)
 - [System Requirements](#system-requirements)
-  - [Minimum Specifications](#minimum-specifications)
-  - [Recommended Specifications](#recommended-specifications)
-  - [Sync Time Expectations](#sync-time-expectations)
 - [Setup](#setup)
-  - [Clone Repository](#1-clone-the-repository-and-submodules)
-  - [Platform Configuration (ARM64)](#2-platform-configuration-apple-silicon--arm64)
-  - [Required Files](#3-required-files)
-  - [Configuration Review](#6-review-zallet-configuration)
 - [Running the Stack](#running-the-stack)
-  - [Quick Start (Synced State)](#quick-start-synced-state)
-  - [Fresh Sync (First Time)](#fresh-sync-first-time-setup)
-  - [Development Mode](#development-mode-optional)
 - [Stopping the Stack](#stopping-the-stack)
 - [Data Storage & Volumes](#data-storage--volumes)
 - [Interacting with Services](#interacting-with-services)
 - [Configuration Guide](#configuration-guide)
 - [Health and Readiness Checks](#health-and-readiness-checks)
 
-## Quick Start (TLDR)
+---
 
-**Using Pre-Built Images (Fastest):**
+## Quick Start
 
-```bash
-# 1. Clone and setup
-git clone https://github.com/ZcashFoundation/z3 && cd z3
-openssl req -x509 -newkey rsa:4096 -keyout config/tls/zaino.key -out config/tls/zaino.crt -sha256 -days 365 -nodes -subj "/CN=localhost"
-rage-keygen -o config/zallet_identity.txt
+> [!IMPORTANT]
+> **First time running Z3?** You must sync Zebra before starting the other services. This takes **24-72 hours for mainnet** or **2-12 hours for testnet**. There is no way around this initial sync.
+>
+> **Already have synced Zebra data?** You can start all services immediately.
 
-# 2. Review config/zallet.toml (update network: "main" or "test")
-# 3. Review .env file (already configured with defaults)
-
-# 4. Start Zebra and wait for sync (24-72h for mainnet, 2-12h for testnet)
-docker compose up -d zebra
-# Wait until: curl http://localhost:8080/ready returns "ok"
-
-# 5. Start full stack
-docker compose up -d
-```
-
-**Building Locally (For Development):**
+### First Time Setup (No Existing Data)
 
 ```bash
-# 1. Clone and setup (same as above, plus submodules)
+# 1. Clone and generate required files
 git clone https://github.com/ZcashFoundation/z3 && cd z3
 git submodule update --init --recursive
-openssl req -x509 -newkey rsa:4096 -keyout config/tls/zaino.key -out config/tls/zaino.crt -sha256 -days 365 -nodes -subj "/CN=localhost"
+openssl req -x509 -newkey rsa:4096 -keyout config/tls/zaino.key -out config/tls/zaino.crt \
+  -sha256 -days 365 -nodes -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost,DNS:zaino,IP:127.0.0.1"
 rage-keygen -o config/zallet_identity.txt
 
-# 2. Review config/zallet.toml and .env as above
+# 2. Build Zaino and Zallet (required - no pre-built images available)
+docker compose build zaino zallet
 
-# 3. Build from local submodules
-docker compose build
+# 3. Review configuration
+#    - config/zallet.toml: set network = "main" or "test"
+#    - .env: review defaults (usually no changes needed)
 
-# 4-5. Start services as above
+# 4. Start ONLY Zebra first
 docker compose up -d zebra
-# ... wait for sync, then:
+
+# 5. Wait for Zebra to sync (this takes hours/days)
+./check-zebra-readiness.sh
+# Or manually: curl http://localhost:8080/ready (returns "ok" when synced)
+
+# 6. Once Zebra is synced, start the remaining services
 docker compose up -d
 ```
 
-**Note for ARM64 Users:** For optimal build performance on Apple Silicon or ARM64 Linux, set `DOCKER_PLATFORM=linux/arm64` in `.env` (see [Platform Configuration](#2-platform-configuration-apple-silicon--arm64)).
+> [!NOTE]
+> The `check-zebra-readiness.sh` script polls Zebra's readiness endpoint and notifies you when sync is complete. You can safely close your terminal during sync and check back later.
 
-**First time?** Read the full [Setup](#setup) and [Running the Stack](#running-the-stack) sections below.
+### With Existing Synced Data
 
-## ⚠️ Important: Docker Images Notice
-
-**This repository builds and hosts Docker images for testing purposes only.**
-
-### Pre-Built Development Images
-
-For convenience, Z3 provides pre-built Docker images that are automatically built from upstream development branches:
-
-- **ghcr.io/zcashfoundation/zebra:edge** - Built from [ZcashFoundation/zebra](https://github.com/ZcashFoundation/zebra) `main` branch
-- **ghcr.io/zcashfoundation/zaino:edge** - Built from [zingolabs/zaino](https://github.com/zingolabs/zaino) `dev` branch
-- **ghcr.io/zcashfoundation/zallet:edge** - Built from [zcash/wallet](https://github.com/zcash/wallet) `main` branch
-
-**Image Snapshot (as of 2025-11-04):**
-- Zebra: commit `7a7572f` (2025-10-29)
-- Zaino: commit `2e2c768` (2025-11-04)
-- Zallet: commit `a7148cd` (2025-10-31)
-
-### Usage Options
-
-**Option 1: Use Pre-Built Images (Default, Fastest)**
-
-The `docker-compose.yml` includes pre-built images that will be pulled automatically:
+If you have previously synced Zebra data (or are mounting existing blockchain state):
 
 ```bash
+# Build if not already built
+docker compose build zaino zallet
+
+# All services can start immediately
 docker compose up -d
+
+# Verify all services are healthy
+docker compose ps
 ```
 
-Docker will pull the `:edge` images from GitHub Container Registry. No build time required.
+> [!TIP]
+> **ARM64 Users (Apple Silicon):** Set `DOCKER_PLATFORM=linux/arm64` in `.env` for native builds. This reduces build time from ~50 minutes to ~3 minutes.
 
-**Option 2: Build Locally**
+---
 
-To build from local submodules (useful for testing local changes):
+## Understanding the Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Z3 Stack                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   ┌─────────┐         ┌─────────┐         ┌─────────┐          │
+│   │  Zebra  │◄────────│  Zaino  │         │ Zallet  │          │
+│   │  (node) │         │ (index) │         │(wallet) │          │
+│   └────┬────┘         └─────────┘         └────┬────┘          │
+│        │                                       │                │
+│        │              ┌─────────────┐          │                │
+│        └──────────────│ Embedded    │◄─────────┘                │
+│                       │ Zaino libs  │                           │
+│                       └─────────────┘                           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+> [!NOTE]
+> **Zallet embeds Zaino libraries internally.** It connects directly to Zebra's JSON-RPC, not to the standalone Zaino service. The Zaino container in this stack is for external gRPC clients (like Zingo wallet) and for testing the indexer independently.
+
+**Service Roles:**
+- **Zebra** - Full node that syncs and validates the Zcash blockchain
+- **Zaino** - Standalone indexer providing gRPC interface for light wallets
+- **Zallet** - Wallet service with embedded indexer that talks directly to Zebra
+
+## Docker Images
+
+> [!IMPORTANT]
+> **Current Status:** Zaino and Zallet require local builds. Pre-built images are available for Zebra only.
+
+### Image Sources
+
+| Service | Image | Source |
+|---------|-------|--------|
+| **Zebra** | `zfnd/zebra:3.1.0` | Pre-built from [ZcashFoundation/zebra](https://github.com/ZcashFoundation/zebra) |
+| **Zaino** | `z3-zaino:local` | Must build locally from submodule |
+| **Zallet** | `z3-zallet:local` | Must build locally from submodule |
+
+### Building Local Images
 
 ```bash
-# Initialize submodules if not already done
+# Initialize submodules
 git submodule update --init --recursive
 
-# Build from local source
-docker compose build
-
-# Start services with local builds
-docker compose up -d
+# Build zaino and zallet
+docker compose build zaino zallet
 ```
 
-When you build locally, Docker Compose creates local images that take precedence over pulling remote images.
+> [!NOTE]
+> Local builds are required because Zaino and Zallet are under active development and require specific version pinning for compatibility.
 
-### Important Warnings
+### Why Local Builds?
 
-- **Images use unstable development branches**: These contain the latest features but may have bugs or breaking changes
-- **Not suitable for production use**: For production, use official releases (see below)
-- **Images are updated periodically**: The `:edge` tag moves forward as we rebuild from upstream development branches
+Zallet embeds Zaino libraries internally. Both must use compatible versions of the Zaino codebase. The submodules in this repository are pinned to tested, compatible commits.
 
-**For production deployments:**
-- Use official release images from respective projects:
-  - Zebra: [zfnd/zebra](https://hub.docker.com/r/zfnd/zebra) (stable releases)
-  - Zaino: Official releases when available
-  - Zallet: Official releases when available
-- Or build from stable release tags yourself
+**For production deployments**, use official release images when available:
+- Zebra: [zfnd/zebra](https://hub.docker.com/r/zfnd/zebra) (stable releases)
+- Zaino/Zallet: Official releases when published
 
 ## Prerequisites
 
@@ -263,78 +273,55 @@ Sync time varies based on CPU speed, disk I/O (SSD vs HDD), and network bandwidt
 
 ## Running the Stack
 
-The Z3 stack uses a **two-phase deployment** approach following blockchain industry best practices:
+> [!WARNING]
+> **Why can't I just run `docker compose up`?**
+>
+> Docker Compose healthchecks have timeout limits that cannot accommodate blockchain sync times (hours to days). If you run `docker compose up` on a fresh install, Zaino and Zallet will repeatedly fail waiting for Zebra to sync.
+>
+> **Solution:** Start Zebra alone first, wait for sync, then start everything else.
 
-### Quick Start (Synced State)
-
-If you have an already-synced Zebra state (cached or imported):
-
-```bash
-cd z3
-docker compose up -d
-```
-
-All services start quickly (within minutes) and are ready to use.
-
-### Fresh Sync (First Time Setup)
-
-**⚠️ IMPORTANT**: Initial blockchain sync can take **24+ hours for mainnet** or **several hours for testnet**. Zebra must sync before dependent services (Zaino, Zallet) can function.
-
-#### Phase 1: Sync Zebra (One-time)
+### First Time (Fresh Sync Required)
 
 ```bash
-cd z3
-
-# Start only Zebra
+# Step 1: Start only Zebra
 docker compose up -d zebra
 
-# Monitor sync progress (choose one)
-docker compose logs -f zebra                    # View logs
-watch curl -s http://localhost:8080/ready       # Poll readiness endpoint
+# Step 2: Monitor sync progress (choose one method)
+./check-zebra-readiness.sh              # Recommended: script waits and notifies
+docker compose logs -f zebra             # Watch logs
+curl http://localhost:8080/ready         # Manual check (returns "ok" when synced)
 
-# Or use this script to wait until Zebra is ready:
-while true; do
-  response=$(curl -s http://127.0.0.1:8080/ready)
-  if [ "$response" = "ok" ]; then
-    echo "Zebra is ready!"
-    break
-  fi
-  echo "Not ready yet: $response"
-  sleep 5
-done
-
-# Zebra is ready when /ready returns "ok"
-```
-
-**How long will this take?** See [Sync Time Expectations](#sync-time-expectations) for detailed estimates based on your hardware and network.
-
-#### Phase 2: Start Full Stack
-
-Once Zebra shows `/ready` returning `ok`:
-
-```bash
-# Start all remaining services
+# Step 3: Once synced, start all services
 docker compose up -d
-
-# Verify all services are healthy
-docker compose ps
 ```
 
-Services start immediately since Zebra is already synced.
+> [!NOTE]
+> **Sync times:**
+> - Mainnet: 24-72 hours (depends on hardware/network)
+> - Testnet: 2-12 hours
+>
+> You can close your terminal during sync. Zebra runs in the background.
 
-### Development Mode (Optional)
+### Returning User (Existing Data)
 
-For quick iteration during development without waiting for sync:
+If Zebra has previously synced (data persists in Docker volumes):
 
 ```bash
-# Copy development override
+docker compose up -d
+docker compose ps  # Verify all healthy
+```
+
+### Development Mode
+
+For local development when you need services running during sync:
+
+```bash
 cp docker-compose.override.yml.example docker-compose.override.yml
-
-# Start all services (uses /healthy instead of /ready)
 docker compose up -d
 ```
 
-**⚠️ WARNING**: In development mode, Zaino and Zallet may experience delays while Zebra syncs. Only use for testing, NOT production.
+> [!CAUTION]
+> Development mode uses `/healthy` instead of `/ready`. Services will start but may error until Zebra catches up. Not for production use.
 
 ## Stopping the Stack
 
