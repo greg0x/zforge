@@ -42,8 +42,8 @@ services:
     image: ghcr.io/zcashfoundation/zaino:sha-934f857
     platform: ${DOCKER_PLATFORM:-linux/amd64}
     build:
-      context: ./zaino
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.zaino
     container_name: z3_zaino
     restart: unless-stopped
     depends_on:

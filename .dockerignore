@@ -1,0 +1,52 @@
+# Rust build artifacts
+**/target/
+**/debug/
+**/*.rs.bk
+**/*.pdb
+
+# Git
+**/.git/
+**/.gitignore
+**/.gitmodules
+
+# IDE
+**/.idea/
+**/.vscode/
+**/.cursor/
+
+# Docker
+**/Dockerfile
+**/docker-compose*.yml
+**/.dockerignore
+
+# Documentation
+**/docs/
+**/book/
+**/*.md
+!zaino/README.md
+
+# CI/CD
+**/.github/
+**/.gitlab-ci.yml
+
+# Test artifacts
+**/tests/
+**/benches/
+**/examples/
+**/proptest-regressions/
+
+# Config and data
+config/
+notes/
+scripts/
+.env
+.env.local
+
+# Other submodules we don't need for zaino build
+zebra/
+zcashd/
+
+# Zaino-specific: keep only what's needed
+!zaino/
+!orchard/
+!librustzcash/
