@@ -1,0 +1,64 @@
+---
+description: Guidelines for writing commit messages
+globs: []
+alwaysApply: true
+---
+
+# Z3 Repository Guidelines
+
+## Commit Message Format
+
+**Title:**
+- Descriptive, action-oriented (e.g., "Add tag field to Orchard actions")
+- No conventional commit prefixes (no "feat:", "fix:", etc.)
+- 50 characters or less
+
+**Body:**
+- Explain WHY and provide context
+- Do NOT list what changed (that's visible in the diff)
+- Include relevant background, decisions, or tradeoffs
+
+**Example:**
+
+```
+Add tag field to Orchard actions
+
+Enables PIR-based transaction scanning for mobile wallets. The 16-byte
+unencrypted tag allows clients to filter relevant transactions without
+trial decryption, reducing bandwidth and battery usage.
+
+This changes the Action struct serialization and requires a network
+upgrade to activate.
+```
+
+## When to Commit
+
+Commit for every **meaningful unit of work**:
+- ✅ One feature or fix per commit
+- ✅ Code compiles and tests pass
+- ✅ Related changes grouped together
+- ❌ Don't commit broken code
+- ❌ Don't bundle unrelated changes
+
+## Agent Instructions
+
+When committing changes:
+
+1. **For code in submodules (zebra/, zaino/, orchard/, librustzcash/):**
+   - Use `required_permissions: ['git_write']`
+   - Commit in the submodule directory first
+   - Then commit in main repo to update pointer
+
+2. **For main repo files (README.md, docker-compose.yml, etc.):**
+   - Use `required_permissions: ['git_write']`
+   - Commit directly in main repo
+
+3. **Commit message body template:**
+   - Line 1: Why this change matters
+   - Line 2: What problem it solves or what it enables
+   - Line 3: Any relevant context or tradeoffs (optional)
+
+4. **Don't commit:**
+   - Documentation updates as part of code changes (separate commits)
+   - Multiple unrelated changes together
+   - Broken or non-compiling code

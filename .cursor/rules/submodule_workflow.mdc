@@ -1,0 +1,43 @@
+---
+description: Workflow for making changes in Git submodules
+globs: ["zebra/**", "zaino/**", "orchard/**", "librustzcash/**", "zcashd/**"]
+alwaysApply: false
+---
+
+# Submodule Workflow
+
+## Making changes in submodules
+
+1. **Work in the submodule:**
+   ```bash
+   cd zebra  # or zaino, orchard, librustzcash
+   git checkout -b feature/your-change
+   # ... make changes ...
+   git add <files>
+   git commit -m "Your descriptive message"
+   git push origin feature/your-change
+   ```
+
+2. **Update main repo to point to new commit:**
+   ```bash
+   cd /Users/greg/dev/zcash/z3
+   git add zebra  # or whichever submodule(s) changed
+   git commit -m "Update zebra with feature X"
+   git push origin dev
+   ```
+
+## Key points
+
+- Submodules track specific commits (not branches)
+- Push submodule changes BEFORE pushing main repo
+- Main repo commit updates the submodule pointer
+- Assumption: You have push access to all fork repos
+
+## For AI Agents
+
+When making changes to files in submodules:
+
+1. After editing files in a submodule, commit in that submodule directory
+2. Return to main repo root and commit the submodule pointer update
+3. Both commits require `required_permissions: ['git_write']`
+4. Follow commit message guidelines from commit_guidelines.mdc
