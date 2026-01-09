@@ -190,12 +190,13 @@ else
 fi
 
 # Check if zcash-devtool binary exists (pre-built)
-if [ -f "zcash-devtool/target/release/zcash-devtool" ]; then
+DEVTOOL="./zcash-devtool/target/release/zcash-devtool"
+if [ -f "$DEVTOOL" ]; then
     pass "zcash-devtool binary exists"
     
     # Test connection to local Zaino
     info "Testing zcash-devtool connection to Zaino..."
-    DEVTOOL_TEST=$(timeout 10 ./zcash-devtool/target/release/zcash-devtool inspect block \
+    DEVTOOL_TEST=$(timeout 10 $DEVTOOL inspect block \
         -s localhost:8137 --height 1 2>&1 || echo "connection_error")
     
     if echo "$DEVTOOL_TEST" | grep -q "hash\|error connecting\|connection_error"; then
@@ -210,9 +211,74 @@ else
 fi
 echo ""
 
-# Test 9: Protocol development readiness
-echo "Test 9: Protocol Development Readiness"
-echo "---------------------------------------"
+# Test 9: Wallet Initialization (Regtest)
+echo "Test 9: Wallet Initialization (Regtest)"
+echo "----------------------------------------"
+
+if [ -f "$DEVTOOL" ]; then
+    # Clean up any previous test wallet
+    TEST_WALLET=".test-wallet-$$"
+    rm -rf "$TEST_WALLET"
+    mkdir -p "$TEST_WALLET"
+    
+    # Create a test mnemonic (deterministic for testing)
+    TEST_MNEMONIC="abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    
+    # Initialize wallet with regtest network
+    info "Initializing test wallet on Regtest..."
+    INIT_OUTPUT=$(echo "$TEST_MNEMONIC" | timeout 30 $DEVTOOL wallet -w "$TEST_WALLET" init \
+        --name "integration-test" \
+        --identity "$TEST_WALLET/identity.age" \
+        --network regtest \
+        --server localhost:8137 \
+        --birthday 1 2>&1 || echo "init_error")
+    
+    if echo "$INIT_OUTPUT" | grep -q "init_error\|Error"; then
+        if echo "$INIT_OUTPUT" | grep -q "transport error\|connection"; then
+            info "Wallet init failed (services may not be running): ${INIT_OUTPUT:0:100}"
+        else
+            fail "Wallet init failed: ${INIT_OUTPUT:0:200}"
+        fi
+    else
+        pass "Wallet initialized on Regtest"
+        
+        # Check wallet files were created
+        if [ -f "$TEST_WALLET/keys.toml" ] && [ -f "$TEST_WALLET/data.sqlite" ]; then
+            pass "Wallet files created (keys.toml, data.sqlite)"
+        else
+            fail "Wallet files not created"
+        fi
+        
+        # Verify network is regtest in config
+        if grep -q "regtest" "$TEST_WALLET/keys.toml" 2>/dev/null; then
+            pass "Wallet configured for Regtest network"
+        else
+            info "Could not verify Regtest in wallet config"
+        fi
+        
+        # Try to generate an address
+        info "Generating address..."
+        ADDR_OUTPUT=$(timeout 10 $DEVTOOL wallet -w "$TEST_WALLET" generate-address 2>&1 || echo "addr_error")
+        if echo "$ADDR_OUTPUT" | grep -q "uregtest\|addr_error"; then
+            if echo "$ADDR_OUTPUT" | grep -q "uregtest"; then
+                pass "Generated Regtest unified address"
+                info "Address: $(echo "$ADDR_OUTPUT" | grep -o 'uregtest[a-z0-9]*' | head -1)"
+            else
+                info "Address generation failed (may need sync)"
+            fi
+        fi
+    fi
+    
+    # Cleanup test wallet
+    rm -rf "$TEST_WALLET"
+else
+    info "Skipping wallet tests (zcash-devtool not built)"
+fi
+echo ""
+
+# Test 10: Protocol development readiness
+echo "Test 10: Protocol Development Readiness"
+echo "----------------------------------------"
 
 # Check orchard structure
 if [ -f "orchard/src/action.rs" ]; then
@@ -252,7 +318,7 @@ if [ $TESTS_FAILED -eq 0 ]; then
     echo "  2. Update serialization in librustzcash"
     echo "  3. Update zebra-chain parsing"
     echo "  4. Update zaino indexer to extract tags"
-    echo "  5. Test with zcash-devtool: cd zcash-devtool && cargo build --release"
+    echo "  5. Test with zcash-devtool wallet on Regtest"
     exit 0
 else
     echo -e "${RED}❌ Some tests failed. Check output above.${NC}"
@@ -260,5 +326,6 @@ else
     echo "Common fixes:"
     echo "  - Services not running: overmind start"
     echo "  - Build zcash-devtool: cd zcash-devtool && cargo build --release"
+    echo "  - Wallet init fails: Check Zaino is synced and responding"
     exit 1
 fi
