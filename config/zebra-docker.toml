@@ -1,0 +1,23 @@
+# Zebra Regtest Configuration for Docker
+# Same as zebra-regtest.toml but with Docker volume paths
+
+[network]
+network = "Regtest"
+
+[network.testnet_parameters.activation_heights]
+NU5 = 1
+
+[state]
+ephemeral = false
+cache_dir = "/data/zebra"
+
+[rpc]
+listen_addr = "0.0.0.0:18232"
+enable_cookie_auth = false
+
+[mining]
+internal_miner = true
+miner_address = "t27eWDgjFYJGVXmzrXeVjnb5J3uXDM9xH9v"
+
+[tracing]
+filter = "info"

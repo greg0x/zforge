@@ -1,47 +1,37 @@
+# Z3 Docker Compose - Regtest Deployment
+#
+# For CI, automated testing, or running on a shared dev server.
+# Local development should use: overmind start
+#
+# Usage:
+#   docker compose build                    # Build images with patched submodules
+#   docker compose up -d                    # Start services
+#   docker compose logs -f                  # Follow logs
+
 services:
   zebra:
-    # Build from z3 root to include patched orchard/librustzcash
     build:
       context: .
       dockerfile: Dockerfile.zebra
     container_name: z3_zebra
     restart: unless-stopped
-    env_file:
-      - ./.env
-    environment:
-      - RUST_LOG=${Z3_ZEBRA_RUST_LOG}
-      - ZEBRA_NETWORK__NETWORK=${NETWORK_NAME}
-      - ZEBRA_RPC__ENABLE_COOKIE_AUTH=${ENABLE_COOKIE_AUTH}
-      - ZEBRA_RPC__COOKIE_DIR=${COOKIE_AUTH_FILE_DIR}
-      # Mining configuration (enabled - we build with internal-miner feature)
-      - ZEBRA_MINING__INTERNAL_MINER=${ZEBRA_MINING__INTERNAL_MINER:-true}
-      - ZEBRA_MINING__MINER_ADDRESS=${ZEBRA_MINING__MINER_ADDRESS}
     volumes:
-      # Blockchain state (defaults to named volume 'zebra_data')
-      - ${Z3_ZEBRA_DATA_PATH}:/home/zebra/.cache/zebra
-      # Cookie authentication shared with Zaino
-      - ${Z3_COOKIE_PATH}:${COOKIE_AUTH_FILE_DIR}
+      - zebra_data:/data/zebra
+      - ./config/zebra-docker.toml:/etc/zebra/config.toml:ro
     ports:
-      - "${Z3_ZEBRA_HOST_RPC_PORT}:${Z3_ZEBRA_RPC_PORT}"
-      - "${Z3_ZEBRA_HOST_HEALTH_PORT}:8080"
+      - "18232:18232"   # RPC
+      - "8080:8080"     # Health/metrics
     networks:
       - z3_net
     healthcheck:
-      # Verifies Zebra is synced near network tip (default: within 2 blocks)
-      # For fresh sync: run 'docker compose up -d zebra' first, wait for sync,
-      # then run 'docker compose up -d' to start full stack
       test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8080/ready || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 90s
+      start_period: 30s
+    command: ["-c", "/etc/zebra/config.toml"]
 
   zaino:
-    # No pre-built image available for this commit - must build locally
-    # Built from zingolabs/zaino:dev - commit 66b3199f (before config restructure)
-    # Run 'docker compose build zaino' to build from ./zaino submodule
-    image: ghcr.io/zcashfoundation/zaino:sha-934f857
-    platform: ${DOCKER_PLATFORM:-linux/amd64}
     build:
       context: .
       dockerfile: Dockerfile.zaino
@@ -50,57 +40,25 @@ services:
     depends_on:
       zebra:
         condition: service_healthy
-    env_file:
-      - ./.env
-    environment:
-      - RUST_LOG=${ZAINO_RUST_LOG}
-      - RUST_BACKTRACE=${ZAINO_RUST_BACKTRACE}
-      - ZAINO_NETWORK=${NETWORK_NAME}
-      # Zebra connection and authentication
-      - ZAINO_VALIDATOR_LISTEN_ADDRESS=zebra:${Z3_ZEBRA_RPC_PORT}
-      - ZAINO_VALIDATOR_COOKIE_AUTH=${ENABLE_COOKIE_AUTH}
-      - ZAINO_VALIDATOR_COOKIE_PATH=${COOKIE_AUTH_FILE_DIR}/.cookie
-      # Zaino RPC services
-      - ZAINO_GRPC_LISTEN_ADDRESS=0.0.0.0:${ZAINO_GRPC_PORT}
-      - ZAINO_JSON_RPC_LISTEN_ADDRESS=0.0.0.0:${ZAINO_JSON_RPC_PORT}
-      # TLS configuration
-      - ZAINO_GRPC_TLS=${ZAINO_GRPC_TLS_ENABLE}
-      - ZAINO_TLS_CERT_PATH=${ZAINO_GRPC_TLS_CERT_PATH}
-      - ZAINO_TLS_KEY_PATH=${ZAINO_GRPC_TLS_KEY_PATH}
     volumes:
-      # Indexer state (defaults to named volume 'zaino_data')
-      - ${Z3_ZAINO_DATA_PATH}:/home/zaino/.cache/zaino
-      # Cookie authentication
-      - ${Z3_COOKIE_PATH}:${COOKIE_AUTH_FILE_DIR}:ro
-    configs:
-      - source: zaino_tls_cert
-        target: ${ZAINO_GRPC_TLS_CERT_PATH}
-      - source: zaino_tls_key
-        target: ${ZAINO_GRPC_TLS_KEY_PATH}
+      - zaino_data:/data/zaino
+      - ./config/zaino-docker.toml:/etc/zaino/config.toml:ro
     ports:
-      - "${ZAINO_HOST_GRPC_PORT}:${ZAINO_GRPC_PORT}"
-      - "${ZAINO_HOST_JSONRPC_PORT}:${ZAINO_JSON_RPC_PORT}"
+      - "8137:8137"     # gRPC (lightwalletd protocol)
     networks:
       - z3_net
     healthcheck:
-      # Process check (gRPC cannot be directly curled)
-      test: ["CMD-SHELL", "/usr/local/bin/zainod --version >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "zainod --version >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 60s
+      start_period: 30s
+    command: ["-c", "/etc/zaino/config.toml"]
 
 volumes:
   zebra_data:
   zaino_data:
-  shared_cookie_volume:
 
 networks:
   z3_net:
     driver: bridge
-
-configs:
-  zaino_tls_cert:
-    file: ./config/tls/zaino.crt
-  zaino_tls_key:
-    file: ./config/tls/zaino.key
