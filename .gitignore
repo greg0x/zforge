@@ -17,10 +17,20 @@ target/
 #.idea/
 
 # Local environment overrides (not committed)
+.env
 .env.local
 
 # Overmind socket
 .overmind.sock
+
+# Build artifacts (native dev setup)
+.build/
+
+# Runtime data
+.data/
+
+# Test wallets
+.test-wallet/
 
 # Config directory - ignore generated files, keep committed configs
 config/tls/
