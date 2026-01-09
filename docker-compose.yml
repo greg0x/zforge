@@ -1,11 +1,9 @@
 services:
   zebra:
-    # Run 'docker compose build' to build locally from ./zebra submodule instead
-    image: zfnd/zebra:3.1.0
+    # Build from z3 root to include patched orchard/librustzcash
     build:
-      context: ./zebra
-      dockerfile: docker/Dockerfile
-      target: runtime
+      context: .
+      dockerfile: Dockerfile.zebra
     container_name: z3_zebra
     restart: unless-stopped
     env_file:
@@ -15,8 +13,9 @@ services:
       - ZEBRA_NETWORK__NETWORK=${NETWORK_NAME}
       - ZEBRA_RPC__ENABLE_COOKIE_AUTH=${ENABLE_COOKIE_AUTH}
       - ZEBRA_RPC__COOKIE_DIR=${COOKIE_AUTH_FILE_DIR}
-      # Mining configuration (commented out - see .env for details)
-      # The official Zebra Docker image does not include the internal-miner feature
+      # Mining configuration (enabled - we build with internal-miner feature)
+      - ZEBRA_MINING__INTERNAL_MINER=${ZEBRA_MINING__INTERNAL_MINER:-true}
+      - ZEBRA_MINING__MINER_ADDRESS=${ZEBRA_MINING__MINER_ADDRESS}
     volumes:
       # Blockchain state (defaults to named volume 'zebra_data')
       - ${Z3_ZEBRA_DATA_PATH}:/home/zebra/.cache/zebra

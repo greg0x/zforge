@@ -1,0 +1,73 @@
+# syntax=docker/dockerfile:1
+# Zebra build from z3 root context (includes patched orchard/librustzcash)
+
+ARG RUST_VERSION=1.89.0
+ARG UID=10001
+ARG GID=10001
+ARG USER=zebra
+ARG HOME=/home/zebra
+
+############################
+# Builder
+############################
+FROM rust:${RUST_VERSION}-bookworm AS builder
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+WORKDIR /build
+
+# Build with internal-miner feature for Regtest mining
+ARG FEATURES="default-release-binaries internal-miner"
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      pkg-config clang cmake make libssl-dev ca-certificates \
+      protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy entire workspace (z3 root, including submodules)
+COPY . .
+
+# Build zebrad with internal-miner feature
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=/build/target \
+    cargo install --locked --path zebra/zebrad --bin zebrad --root /out --features "${FEATURES}"
+
+############################
+# Runtime
+############################
+FROM debian:bookworm-slim AS runtime
+SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
+
+ARG UID
+ARG GID
+ARG USER
+ARG HOME
+
+# Install runtime dependencies
+RUN apt-get -qq update && \
+    apt-get -qq install -y --no-install-recommends \
+      ca-certificates libssl3 libgcc-s1 curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user (matching Zebra's expectations)
+RUN addgroup --gid "${GID}" "${USER}" && \
+    adduser --uid "${UID}" --gid "${GID}" --home "${HOME}" \
+            --disabled-password --gecos "" "${USER}"
+
+WORKDIR ${HOME}
+
+# Copy the built binary
+COPY --from=builder /out/bin/zebrad /usr/local/bin/zebrad
+
+# Create cache directory
+RUN mkdir -p ${HOME}/.cache/zebra && chown -R "${UID}:${GID}" "${HOME}"
+
+USER ${USER}
+
+# Expose ports (RPC, P2P, metrics, health)
+EXPOSE 18232 18233 9999 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD curl -sf http://127.0.0.1:8080/ready || exit 1
+
+CMD ["zebrad", "start"]

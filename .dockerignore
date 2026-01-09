@@ -42,11 +42,12 @@ scripts/
 .env
 .env.local
 
-# Other submodules we don't need for zaino build
-zebra/
+# Submodules we don't need
 zcashd/
+zcash-devtool/
 
-# Zaino-specific: keep only what's needed
+# Keep build-relevant submodules
+!zebra/
 !zaino/
 !orchard/
 !librustzcash/
