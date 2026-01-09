@@ -21,11 +21,12 @@ echo "=========================================="
 echo ""
 
 # Target commits for z3 compatibility
+# All versions use orchard 0.11, sapling-crypto 0.5, zcash_client_backend 0.20
 get_target() {
     case "$1" in
         orchard)       echo "0a71893" ;;           # Release 0.11.0
-        librustzcash)  echo "c0228f9ad98" ;;       # Has zcash_client_backend 0.21, orchard 0.11 deps
-        zcash-devtool) echo "017bd27" ;;           # Uses orchard 0.11, sapling 0.5
+        librustzcash)  echo "572a91a0f" ;;         # zcash_client_backend 0.20, zcash_keys 0.11
+        zcash-devtool) echo "f17ddb0" ;;           # Uses zcash_client_backend 0.20
         *)             echo "" ;;                   # Use current for zebra, zaino
     esac
 }
