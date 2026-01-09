@@ -88,6 +88,9 @@ See `.cursor/rules/` for detailed commit and submodule guidelines.
 ./scripts/dev-start.sh           # Generates TLS certs if needed
 ./scripts/dev-start.sh --rebuild # Force rebuild before start
 
+# Verify stack is working
+./tests/integration_test.sh      # Run integration tests
+
 # Stop development environment  
 ./scripts/dev-stop.sh            # Stop services
 ./scripts/dev-stop.sh --clean    # Stop + remove all data
