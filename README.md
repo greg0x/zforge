@@ -43,7 +43,7 @@ zcash_primitives = { path = "../librustzcash/zcash_primitives" }
 
 ## Making Changes
 
-Edit orchard or librustzcash - changes are immediately available (no crates.io publish needed):
+Edit orchard or librustzcash - changes propagate immediately:
 
 ```bash
 cd orchard
@@ -52,8 +52,12 @@ git checkout -b feature/my-change
 git commit -m "Add feature"
 git push origin feature/my-change
 
-# Test immediately
-cd ../zebra && cargo check  # ✅ Uses ../orchard
+# Test with Docker stack (rebuilds with your changes)
+cd ..
+./scripts/dev-restart.sh zaino
+
+# Or test compilation directly
+cd zebra && cargo check  # ✅ Uses ../orchard
 cd ../zaino && cargo check  # ✅ Uses ../orchard
 ```
 
@@ -77,23 +81,28 @@ git push origin dev
 
 See `.cursor/rules/` for detailed commit and submodule guidelines.
 
-## Running the Stack (Docker)
-
-> [!NOTE]
-> **Mac Silicon Users:** Set `DOCKER_PLATFORM=linux/arm64` in `.env` for native builds (3 min vs 50 min compile time).
+## Running the Stack
 
 ```bash
-# Start development environment (generates TLS certs if needed)
-./scripts/dev-start.sh
+# Start development environment
+./scripts/dev-start.sh           # Generates TLS certs if needed
+./scripts/dev-start.sh --rebuild # Force rebuild before start
 
-# Stop development environment
-./scripts/dev-stop.sh
+# Stop development environment  
+./scripts/dev-stop.sh            # Stop services
+./scripts/dev-stop.sh --clean    # Stop + remove all data
 
 # Restart after code changes
-./scripts/dev-restart.sh zaino  # Rebuild zaino after orchard/librustzcash changes
+./scripts/dev-restart.sh         # Rebuild all services
+./scripts/dev-restart.sh zaino   # Rebuild only zaino
 ```
 
-**Default: Regtest mode** (no sync needed, instant blocks). See [docs/docker-deployment.md](docs/docker-deployment.md) for production deployment guide.
+**Default: Regtest mode** (no sync needed, instant blocks for protocol development).
+
+> [!TIP]
+> **Mac Silicon (M1/M2/M3):** Uncomment `DOCKER_PLATFORM=linux/arm64` in `.env` for native builds (3 min vs 50 min).
+
+See [docs/docker-deployment.md](docs/docker-deployment.md) for production deployment guide.
 
 ## Repository Structure
 
@@ -115,18 +124,19 @@ Each submodule has:
 - **Rust:** Latest stable toolchain
 - **Docker & Docker Compose:** For running the stack
 - **Git:** For submodules
+- **OpenSSL:** For generating TLS certificates (usually pre-installed)
 
 ## Notes
 
+- **Network:** Default is Regtest (no sync, instant blocks for protocol development)
 - **Zallet removed:** Incompatible versions (requires zcash_primitives v0.19, we use v0.26)
 - **For wallet testing:** Use integration tests or zcash-devtool
-- **Sync time:** Testnet 2-12 hours, Mainnet 24-72 hours
-- **Non-Mac Silicon Users:** Comment out `DOCKER_PLATFORM=linux/arm64` in `.env` .
+- **Mac Silicon:** Uncomment `DOCKER_PLATFORM=linux/arm64` in `.env` for native builds (faster)
 
 ## Documentation
 
-- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Full Docker deployment guide
-- **[scripts/setup-dev-env.sh](scripts/setup-dev-env.sh)** - Submodule setup script
+- **[docs/docker-deployment.md](docs/docker-deployment.md)** - Full Docker deployment guide
+- **[.cursor/rules/](/.cursor/rules/)** - Commit guidelines, submodule workflow, dev environment rules
 
 ## License
 
