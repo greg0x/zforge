@@ -295,7 +295,8 @@ if [ -f "$DEVTOOL" ] && [ -n "$TEST_WALLET" ] && [ -d "$TEST_WALLET" ]; then
     info "Wallet exists from Test 9, syncing to verify indexer..."
     
     # Sync the wallet - this verifies Zaino is serving data
-    SYNC_OUTPUT=$(timeout 60 $DEVTOOL wallet -w "$TEST_WALLET" sync 2>&1 || echo "sync_error")
+    # Must specify server for regtest (not stored in wallet config)
+    SYNC_OUTPUT=$(timeout 60 $DEVTOOL wallet -w "$TEST_WALLET" sync --server localhost:8137 2>&1 || echo "sync_error")
     
     if echo "$SYNC_OUTPUT" | grep -qi "error\|failed"; then
         if echo "$SYNC_OUTPUT" | grep -qi "transport\|connection"; then
@@ -332,7 +333,7 @@ elif [ -f "$DEVTOOL" ]; then
     if echo "$INIT_OUT" | grep -q "init_error\|Error"; then
         info "Could not create wallet for sync test"
     else
-        SYNC_OUTPUT=$(timeout 60 $DEVTOOL wallet -w "$TEST_WALLET_SYNC" sync 2>&1 || echo "sync_error")
+        SYNC_OUTPUT=$(timeout 60 $DEVTOOL wallet -w "$TEST_WALLET_SYNC" sync --server localhost:8137 2>&1 || echo "sync_error")
         if echo "$SYNC_OUTPUT" | grep -qi "error\|sync_error"; then
             info "Sync test: ${SYNC_OUTPUT:0:100}"
         else
