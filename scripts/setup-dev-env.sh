@@ -30,12 +30,12 @@ setup_remotes() {
         echo "  ✓ Added upstream: ${upstream_url}"
     fi
     
-    # Ensure we're on dev branch
-    if git rev-parse --verify dev &>/dev/null; then
-        git checkout dev
-        echo "  ✓ Checked out dev branch"
+    # Ensure we're on main branch
+    if git rev-parse --verify main &>/dev/null; then
+        git checkout main
+        echo "  ✓ Checked out main branch"
     else
-        echo "  ⚠️  dev branch not found, staying on current branch"
+        echo "  ⚠️  main branch not found, staying on current branch"
     fi
     
     # Verify remotes
@@ -57,16 +57,18 @@ echo ""
 echo -e "${GREEN}✅ Development environment setup complete!${NC}"
 echo ""
 echo -e "${YELLOW}📋 Branch Structure:${NC}"
-echo "  • z3 repo:    main (development happens here)"
-echo "  • Submodules: dev (z3 development base, pinned to compatible versions)"
-echo "  •             main (tracks upstream, sync only)"
+echo "  • z3 repo:    main (primary development branch)"
+echo "  • Submodules: main (z3 development, pinned to compatible versions)"
+echo "  •             feature/* (your feature branches)"
+echo "  •             pr/* (upstream contributions, from upstream/main)"
 echo ""
 echo "📝 Next steps:"
 echo "  1. Install overmind: brew install overmind"
-echo "  2. Start services:   overmind start"
-echo "  3. Stop services:    Ctrl+C"
+echo "  2. Build devtool:    cd zcash-devtool && cargo build --release && cd .."
+echo "  3. Start services:   overmind start"
+echo "  4. Run tests:        ./tests/integration_test.sh"
 echo ""
 echo "🔄 Branch workflow:"
-echo "  • Daily work:  feature branches from 'dev'"
-echo "  • Upstreaming: create branch from 'main', cherry-pick commits"
-echo "  • See .cursor/rules/branch_workflow.mdc for details"
+echo "  • Daily work:  feature branches from 'main'"
+echo "  • Upstreaming: create pr/* branch from 'upstream/main', cherry-pick"
+echo "  • See README.md for details"
