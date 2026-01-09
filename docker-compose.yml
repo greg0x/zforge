@@ -15,10 +15,8 @@ services:
       - ZEBRA_NETWORK__NETWORK=${NETWORK_NAME}
       - ZEBRA_RPC__ENABLE_COOKIE_AUTH=${ENABLE_COOKIE_AUTH}
       - ZEBRA_RPC__COOKIE_DIR=${COOKIE_AUTH_FILE_DIR}
-      # TODO: Internal miner not supported in Zebra v3.1.0
-      # For mining, use zcashd or wait for Zebra mining support
-      # - ZEBRA_MINING__MINER_ADDRESS=${ZEBRA_MINER_ADDRESS}
-      # - ZEBRA_MINING__INTERNAL_MINER=true
+      # Mining configuration (commented out - see .env for details)
+      # The official Zebra Docker image does not include the internal-miner feature
     volumes:
       # Blockchain state (defaults to named volume 'zebra_data')
       - ${Z3_ZEBRA_DATA_PATH}:/home/zebra/.cache/zebra

@@ -161,12 +161,8 @@ echo ""
 # Test 7: End-to-End Block Mining
 echo "Test 7: End-to-End Block Mining"
 echo "--------------------------------"
-info "NOTE: Zebra v3.1.0 does not support internal mining"
-info "For mining, use zcashd or wait for Zebra mining support"
-info "Skipping mining test..."
+info "Testing Zebra's internal miner in Regtest..."
 echo ""
-# TODO: Enable when Zebra supports internal mining or zcashd is added
-if false; then
 
 # Get initial block height
 INITIAL_HEIGHT_RESPONSE=$(curl -s -X POST http://localhost:18232 \
@@ -224,7 +220,6 @@ else
     fail "Failed to generate block (internal miner may not be enabled)"
     info "Check docker-compose.yml for ZEBRA_MINING__INTERNAL_MINER=true"
 fi
-fi  # End of skipped mining test
 
 echo ""
 
