@@ -15,6 +15,9 @@ services:
       - ZEBRA_NETWORK__NETWORK=${NETWORK_NAME}
       - ZEBRA_RPC__ENABLE_COOKIE_AUTH=${ENABLE_COOKIE_AUTH}
       - ZEBRA_RPC__COOKIE_DIR=${COOKIE_AUTH_FILE_DIR}
+      # Enable internal miner for Regtest (allows block generation on demand)
+      - ZEBRA_MINING__MINER_ADDRESS=${ZEBRA_MINER_ADDRESS:-tmRLj8xNJMaJxkfDYq5Y7h8Ujx8mW8FEVbd}
+      - ZEBRA_MINING__INTERNAL_MINER=true
     volumes:
       # Blockchain state (defaults to named volume 'zebra_data')
       - ${Z3_ZEBRA_DATA_PATH}:/home/zebra/.cache/zebra

@@ -4,12 +4,12 @@
 [submodule "zaino"]
 	path = zaino
 	url = https://github.com/greg-nagy/zaino.git
-[submodule "zcashd"]
-	path = zcashd
-	url = https://github.com/greg-nagy/zcashd.git
 [submodule "orchard"]
 	path = orchard
 	url = https://github.com/greg-nagy/orchard.git
 [submodule "librustzcash"]
 	path = librustzcash
 	url = https://github.com/greg-nagy/librustzcash.git
+[submodule "zcash-devtool"]
+	path = zcash-devtool
+	url = https://github.com/greg-nagy/zcash-devtool.git

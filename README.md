@@ -1,6 +1,6 @@
 # Z3 - Unified Zcash Stack
 
-A development environment for Zcash protocol work combining Zebra (full node), Zaino (indexer), and local forks of orchard and librustzcash.
+A development environment for Zcash protocol work combining Zebra (full node), Zaino (indexer), zcash-devtool (wallet/testing), and local forks of orchard and librustzcash.
 
 ## Quick Start for Developers
 
@@ -111,16 +111,33 @@ See [docs/docker-deployment.md](docs/docker-deployment.md) for production deploy
 
 ```
 z3/
-├── zebra/           Full node (greg-nagy/zebra → ZcashFoundation/zebra)
-├── zaino/           Indexer (greg-nagy/zaino → zingolabs/zaino)
-├── orchard/         Orchard protocol (greg-nagy/orchard → zcash/orchard)
-├── librustzcash/    Zcash primitives (greg-nagy/librustzcash → zcash/librustzcash)
-└── zcashd/          Legacy reference (greg-nagy/zcashd → zcash/zcash)
+├── zebra/          Full node (greg-nagy/zebra → ZcashFoundation/zebra)
+├── zaino/          Indexer (greg-nagy/zaino → zingolabs/zaino)
+├── zcash-devtool/  Wallet/testing CLI (greg-nagy/zcash-devtool → zcash/zcash-devtool)
+├── orchard/        Orchard protocol (greg-nagy/orchard → zcash/orchard)
+└── librustzcash/   Zcash primitives (greg-nagy/librustzcash → zcash/librustzcash)
 ```
 
 Each submodule has:
 - `origin` → your fork (push here)
 - `upstream` → official repo (sync from here)
+
+## Tag-PIR Testing Workflow
+
+This environment is set up for tag-PIR protocol development:
+
+1. **Make changes** to `orchard/` or `librustzcash/` (add tag field to Orchard actions)
+2. **Create transactions** with `zcash-devtool` (uses your modified librustzcash)
+3. **Mine blocks** with Zebra's internal miner (Regtest mode)
+4. **Verify indexing** with Zaino (extracts tags from CompactOrchardAction)
+5. **Run integration tests** to verify end-to-end functionality
+
+```bash
+# Example: Generate a block after making protocol changes
+curl -X POST http://localhost:18232 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"generate","params":[1],"id":1}'
+```
 
 ## Prerequisites
 
@@ -132,9 +149,9 @@ Each submodule has:
 ## Notes
 
 - **Network:** Default is Regtest (no sync, instant blocks for protocol development)
-- **Zallet removed:** Incompatible versions (requires zcash_primitives v0.19, we use v0.26)
-- **For wallet testing:** Use integration tests or zcash-devtool
-- **Mac Silicon:** Uncomment `DOCKER_PLATFORM=linux/arm64` in `.env` for native builds (faster)
+- **Mining:** Zebra's internal miner is enabled for on-demand block generation
+- **Wallet/Testing:** Use `zcash-devtool` for creating transactions (patched to use local libs)
+- **Mac Silicon:** Set `DOCKER_PLATFORM=linux/arm64` in `.env` for native builds (faster)
 
 ## Documentation
 
