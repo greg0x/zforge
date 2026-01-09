@@ -26,20 +26,27 @@
 
 ## Functionality Left To Build
 
-1. **Docker Integration:**
+1. **Tag-Based PIR Prototype (Priority):**
+   - Phase 1: Orchard + librustzcash protocol changes (Week 1-2)
+   - Phase 2: Zebra integration for tag parsing/serving (Week 2-3)
+   - Phase 3: Zaino protobuf + indexing updates (Week 3-4)
+   - Phase 4: Wallet tag generation + filtering (Week 4-5)
+   - Phase 5: E2E testing and benchmarking (Week 5-6)
+
+2. **Docker Integration:**
    - Research and document Zallet's Docker requirements
    - Create production Docker Compose with all components
    - Implement monitoring and health checks
    - Develop backup/restore procedures
    - Create deployment documentation
 
-2. **Software Stack Development:**
+3. **Software Stack Development:**
    - Complete [Zebra Ready for zcashd Deprecation milestone](https://github.com/orgs/ZcashFoundation/projects/9/views/11)
    - Continue Zaino development as Lightwalletd replacement
    - Progress Zallet development
    - Build Z3 wrapper service for unified RPC routing
 
-3. **Production Readiness:**
+4. **Production Readiness:**
    - Implement security hardening
    - Set up monitoring and alerting
    - Create disaster recovery procedures
@@ -51,6 +58,7 @@
    - Memory Bank established as knowledge repository
    - Docker orchestration plan documented in z3_docker.md
    - RPC routing assignments in progress
+   - Tag-based PIR implementation plan created (2026-01-09)
 
 2. **Development Progress:**
    - Zebra: Docker configuration mature, ready for integration
@@ -58,7 +66,14 @@
    - Zallet: Docker requirements to be researched
    - Z3 Wrapper: Architecture planning stage
 
-3. **Next Steps:**
+3. **Tag-Based PIR Prototype (NEW):**
+   - Protocol design complete
+   - Implementation plan documented
+   - External dependencies forked (orchard, librustzcash)
+   - Ready to begin Phase 1 implementation
+
+4. **Next Steps:**
+   - **TAG-PIR:** Begin orchard Action struct modifications (Week 1)
    - Complete Zallet Docker investigation
    - Implement unified Docker Compose
    - Set up monitoring infrastructure
