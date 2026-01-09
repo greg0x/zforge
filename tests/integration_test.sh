@@ -234,13 +234,14 @@ if [ -f "$DEVTOOL" ]; then
     # Create a test mnemonic (deterministic for testing)
     TEST_MNEMONIC="abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
     
-    # Initialize wallet with regtest network
+    # Initialize wallet with regtest network (using --mnemonic flag for non-interactive)
     info "Initializing test wallet on Regtest..."
-    INIT_OUTPUT=$(echo "$TEST_MNEMONIC" | timeout 30 $DEVTOOL wallet -w "$TEST_WALLET" init \
+    INIT_OUTPUT=$(timeout 30 $DEVTOOL wallet -w "$TEST_WALLET" init \
         --name "integration-test" \
         --identity "$TEST_WALLET/identity.age" \
         --network regtest \
-        --server localhost:8137 2>&1 || echo "init_error")
+        --server localhost:8137 \
+        --mnemonic "$TEST_MNEMONIC" 2>&1 || echo "init_error")
     
     if echo "$INIT_OUTPUT" | grep -q "init_error\|Error"; then
         if echo "$INIT_OUTPUT" | grep -q "transport error\|connection"; then
@@ -318,14 +319,15 @@ elif [ -f "$DEVTOOL" ]; then
     TEST_WALLET_SYNC=".test-wallet-sync-$$"
     rm -rf "$TEST_WALLET_SYNC"
     mkdir -p "$TEST_WALLET_SYNC"
-    TEST_MNEMONIC="abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    SYNC_MNEMONIC="abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
     
     info "Creating temp wallet for sync test..."
-    INIT_OUT=$(echo "$TEST_MNEMONIC" | timeout 30 $DEVTOOL wallet -w "$TEST_WALLET_SYNC" init \
+    INIT_OUT=$(timeout 30 $DEVTOOL wallet -w "$TEST_WALLET_SYNC" init \
         --name "sync-test" \
         --identity "$TEST_WALLET_SYNC/identity.age" \
         --network regtest \
-        --server localhost:8137 2>&1 || echo "init_error")
+        --server localhost:8137 \
+        --mnemonic "$SYNC_MNEMONIC" 2>&1 || echo "init_error")
     
     if echo "$INIT_OUT" | grep -q "init_error\|Error"; then
         info "Could not create wallet for sync test"
