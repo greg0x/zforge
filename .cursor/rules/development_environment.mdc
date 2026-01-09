@@ -1,0 +1,80 @@
+---
+description: Development environment setup and Docker workflow
+globs: ["Dockerfile*", "docker-compose*.yml", ".env*", ".dockerignore"]
+alwaysApply: false
+---
+
+# Development Environment Guidelines
+
+## Network Configuration
+
+**Default: Regtest** - For protocol development
+- No sync required (instant, on-demand blocks)
+- Perfect for testing protocol changes
+- Genesis block at Height(0)
+
+**Switching networks:** Edit `.env` → `NETWORK_NAME=` (Mainnet/Testnet/Regtest)
+
+## Docker Build Context
+
+**Zaino requires parent context** due to local patches:
+```yaml
+build:
+  context: .                    # z3 root (includes submodules)
+  dockerfile: Dockerfile.zaino  # not zaino/Dockerfile
+```
+
+**Why:** Zaino patches reference `../orchard` and `../librustzcash` which must be in build context.
+
+## Local Patches Active
+
+All services use local submodule versions (no crates.io):
+- `zaino` → `../orchard`, `../librustzcash`
+- `zebra` → `../orchard`, `../librustzcash` (via Cargo.toml patches)
+
+**Changes propagate immediately** - just rebuild:
+```bash
+cd /Users/greg/dev/zcash/z3
+docker compose build zaino  # After orchard/librustzcash changes
+docker compose up -d        # Restart with new build
+```
+
+## Verification Commands
+
+**Check services:**
+```bash
+docker compose ps                    # Container status
+docker compose logs zebra --tail=20  # Zebra logs
+docker compose logs zaino --tail=20  # Zaino logs
+```
+
+**Check connectivity:**
+```bash
+curl http://localhost:8080/healthy  # Zebra health
+curl http://localhost:8080/ready    # Zebra sync status
+```
+
+**Expected baseline:**
+- Zebra: `net="Regtest"`, `Height(0)`, healthy
+- Zaino: Connected, ChainState🟢 JsonRPC🟢 gRPC🟢
+
+## Clean Slate
+
+**Remove all data and rebuild:**
+```bash
+docker compose down
+docker volume rm z3_zebra_data z3_zaino_data z3_shared_cookie_volume
+docker compose build
+docker compose up -d
+```
+
+## For AI Agents
+
+When making protocol changes:
+1. Edit files in `orchard/` or `librustzcash/` submodules
+2. Rebuild affected services: `docker compose build zaino`
+3. Restart: `docker compose up -d`
+4. Verify logs show new behavior
+5. Commit changes in submodule first, then update main repo pointer
+
+**Do not** change `NETWORK_NAME` to Mainnet/Testnet for protocol work - Regtest is intentional.
