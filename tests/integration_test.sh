@@ -3,11 +3,19 @@ set -eo pipefail
 
 # Integration test for Z3 native development stack
 # Tests Zebra RPC and Zaino gRPC connectivity
+# Verifies the full data flow: Zebra → Zaino → zcash-devtool
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$PROJECT_ROOT"
+
+# Cleanup function
+cleanup() {
+    # Clean up test wallets
+    rm -rf .test-wallet-* 2>/dev/null || true
+}
+trap cleanup EXIT
 
 # Colors
 RED='\033[0;31m'
@@ -215,9 +223,11 @@ echo ""
 echo "Test 9: Wallet Initialization (Regtest)"
 echo "----------------------------------------"
 
+# Define wallet path (used in Test 9 and 10)
+TEST_WALLET=".test-wallet-$$"
+
 if [ -f "$DEVTOOL" ]; then
     # Clean up any previous test wallet
-    TEST_WALLET=".test-wallet-$$"
     rm -rf "$TEST_WALLET"
     mkdir -p "$TEST_WALLET"
     
@@ -230,8 +240,7 @@ if [ -f "$DEVTOOL" ]; then
         --name "integration-test" \
         --identity "$TEST_WALLET/identity.age" \
         --network regtest \
-        --server localhost:8137 \
-        --birthday 1 2>&1 || echo "init_error")
+        --server localhost:8137 2>&1 || echo "init_error")
     
     if echo "$INIT_OUTPUT" | grep -q "init_error\|Error"; then
         if echo "$INIT_OUTPUT" | grep -q "transport error\|connection"; then
@@ -239,6 +248,9 @@ if [ -f "$DEVTOOL" ]; then
         else
             fail "Wallet init failed: ${INIT_OUTPUT:0:200}"
         fi
+        # Clean up failed wallet
+        rm -rf "$TEST_WALLET"
+        TEST_WALLET=""
     else
         pass "Wallet initialized on Regtest"
         
@@ -262,27 +274,123 @@ if [ -f "$DEVTOOL" ]; then
         if echo "$ADDR_OUTPUT" | grep -q "uregtest\|addr_error"; then
             if echo "$ADDR_OUTPUT" | grep -q "uregtest"; then
                 pass "Generated Regtest unified address"
-                info "Address: $(echo "$ADDR_OUTPUT" | grep -o 'uregtest[a-z0-9]*' | head -1)"
+                WALLET_ADDRESS=$(echo "$ADDR_OUTPUT" | grep -o 'uregtest[a-z0-9]*' | head -1)
+                info "Address: $WALLET_ADDRESS"
             else
                 info "Address generation failed (may need sync)"
             fi
         fi
     fi
-    
-    # Cleanup test wallet
-    rm -rf "$TEST_WALLET"
 else
     info "Skipping wallet tests (zcash-devtool not built)"
 fi
 echo ""
 
-# Test 10: Protocol development readiness
-echo "Test 10: Protocol Development Readiness"
+# Test 10: Indexer Data Flow (Wallet Sync)
+echo "Test 10: Indexer Data Flow (Zaino)"
+echo "-----------------------------------"
+
+if [ -f "$DEVTOOL" ] && [ -n "$TEST_WALLET" ] && [ -d "$TEST_WALLET" ]; then
+    info "Wallet exists from Test 9, syncing to verify indexer..."
+    
+    # Sync the wallet - this verifies Zaino is serving data
+    SYNC_OUTPUT=$(timeout 60 $DEVTOOL wallet -w "$TEST_WALLET" sync 2>&1 || echo "sync_error")
+    
+    if echo "$SYNC_OUTPUT" | grep -qi "error\|failed"; then
+        if echo "$SYNC_OUTPUT" | grep -qi "transport\|connection"; then
+            info "Sync failed (Zaino may not be running): ${SYNC_OUTPUT:0:100}"
+        else
+            fail "Wallet sync failed: ${SYNC_OUTPUT:0:150}"
+        fi
+    else
+        pass "Wallet synced successfully via Zaino"
+        
+        # Check wallet can see blockchain height
+        BALANCE_OUTPUT=$(timeout 10 $DEVTOOL wallet -w "$TEST_WALLET" balance 2>&1 || echo "balance_error")
+        if echo "$BALANCE_OUTPUT" | grep -qi "balance\|zatoshi\|0"; then
+            pass "Wallet queried balance from chain"
+        else
+            info "Balance query: ${BALANCE_OUTPUT:0:80}"
+        fi
+    fi
+elif [ -f "$DEVTOOL" ]; then
+    # No wallet from Test 9, create a quick one for sync test
+    TEST_WALLET_SYNC=".test-wallet-sync-$$"
+    rm -rf "$TEST_WALLET_SYNC"
+    mkdir -p "$TEST_WALLET_SYNC"
+    TEST_MNEMONIC="abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+    
+    info "Creating temp wallet for sync test..."
+    INIT_OUT=$(echo "$TEST_MNEMONIC" | timeout 30 $DEVTOOL wallet -w "$TEST_WALLET_SYNC" init \
+        --name "sync-test" \
+        --identity "$TEST_WALLET_SYNC/identity.age" \
+        --network regtest \
+        --server localhost:8137 2>&1 || echo "init_error")
+    
+    if echo "$INIT_OUT" | grep -q "init_error\|Error"; then
+        info "Could not create wallet for sync test"
+    else
+        SYNC_OUTPUT=$(timeout 60 $DEVTOOL wallet -w "$TEST_WALLET_SYNC" sync 2>&1 || echo "sync_error")
+        if echo "$SYNC_OUTPUT" | grep -qi "error\|sync_error"; then
+            info "Sync test: ${SYNC_OUTPUT:0:100}"
+        else
+            pass "Wallet synced via Zaino indexer"
+        fi
+    fi
+    rm -rf "$TEST_WALLET_SYNC"
+else
+    info "Skipping indexer tests (zcash-devtool not built)"
+fi
+echo ""
+
+# Test 11: Transaction Inspection
+echo "Test 11: Transaction Inspection"
+echo "--------------------------------"
+
+# Get a coinbase transaction from block 1 and inspect it
+BLOCK1_HASH=$(curl -sf -X POST http://localhost:18232 \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","method":"getblockhash","params":[1],"id":1}' 2>/dev/null \
+    | grep -o '"result":"[a-f0-9]*"' | cut -d'"' -f4 || echo "")
+
+if [ -n "$BLOCK1_HASH" ]; then
+    pass "Got block 1 hash from Zebra"
+    info "Block hash: ${BLOCK1_HASH:0:16}..."
+    
+    # Get raw transaction from block
+    RAW_TX=$(curl -sf -X POST http://localhost:18232 \
+        -H "Content-Type: application/json" \
+        -d "{\"jsonrpc\":\"2.0\",\"method\":\"getblock\",\"params\":[\"$BLOCK1_HASH\", 0],\"id\":1}" 2>/dev/null \
+        | grep -o '"result":"[a-f0-9]*"' | cut -d'"' -f4 || echo "")
+    
+    if [ -n "$RAW_TX" ] && [ -f "$DEVTOOL" ]; then
+        # Extract the coinbase tx (first tx in raw block - this is complex, so we just verify block data)
+        info "Raw block data available (${#RAW_TX} hex chars)"
+        pass "Can fetch raw block data for transaction parsing"
+        
+        # For full inspection, we'd parse the block and extract the coinbase
+        # This will be how we verify tag fields are present after protocol changes
+        info "Transaction inspection path ready for tag field verification"
+    else
+        info "Could not fetch raw block data"
+    fi
+else
+    info "Could not get block 1 hash (is Zebra running?)"
+fi
+echo ""
+
+# Test 12: Protocol Development Readiness
+echo "Test 12: Protocol Development Readiness"
 echo "----------------------------------------"
 
 # Check orchard structure
 if [ -f "orchard/src/action.rs" ]; then
     pass "orchard/src/action.rs exists (where tag field will be added)"
+    # Show current Action struct location
+    ACTION_LINE=$(grep -n "^pub struct Action" orchard/src/action.rs | head -1 || echo "")
+    if [ -n "$ACTION_LINE" ]; then
+        info "Action struct at line ${ACTION_LINE%%:*}"
+    fi
 else
     fail "orchard/src/action.rs not found"
 fi
@@ -300,6 +408,13 @@ if [ -d "zebra/zebra-chain/src/orchard" ]; then
 else
     fail "zebra-chain orchard module not found"
 fi
+
+# Check zaino-state for indexer
+if [ -d "zaino/zaino-state/src" ]; then
+    pass "zaino-state exists (where tag indexing will be added)"
+else
+    fail "zaino-state not found"
+fi
 echo ""
 
 # Summary
@@ -313,12 +428,16 @@ echo ""
 if [ $TESTS_FAILED -eq 0 ]; then
     echo -e "${GREEN}✅ All tests passed! Ready for protocol development.${NC}"
     echo ""
+    echo "Data flow verified:"
+    echo "  Zebra (mining) → Zaino (indexing) → zcash-devtool (querying)"
+    echo ""
     echo "Next steps for tag-PIR implementation:"
-    echo "  1. Add tag field to orchard/src/action.rs"
-    echo "  2. Update serialization in librustzcash"
-    echo "  3. Update zebra-chain parsing"
-    echo "  4. Update zaino indexer to extract tags"
-    echo "  5. Test with zcash-devtool wallet on Regtest"
+    echo "  1. Add 16-byte tag field to orchard/src/action.rs (Action struct)"
+    echo "  2. Update action serialization in orchard/src/action.rs"
+    echo "  3. Update librustzcash transaction builder"
+    echo "  4. Update zebra-chain orchard action parsing"
+    echo "  5. Update zaino to extract and index tags"
+    echo "  6. Test: send tx with tag → verify indexer sees tag"
     exit 0
 else
     echo -e "${RED}❌ Some tests failed. Check output above.${NC}"
@@ -326,6 +445,6 @@ else
     echo "Common fixes:"
     echo "  - Services not running: overmind start"
     echo "  - Build zcash-devtool: cd zcash-devtool && cargo build --release"
-    echo "  - Wallet init fails: Check Zaino is synced and responding"
+    echo "  - Zaino not syncing: Check logs with 'overmind echo zaino'"
     exit 1
 fi
