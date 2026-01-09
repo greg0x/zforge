@@ -83,21 +83,17 @@ See `.cursor/rules/` for detailed commit and submodule guidelines.
 > **Mac Silicon Users:** Set `DOCKER_PLATFORM=linux/arm64` in `.env` for native builds (3 min vs 50 min compile time).
 
 ```bash
-# Generate required files
-openssl req -x509 -newkey rsa:4096 -keyout config/tls/zaino.key -out config/tls/zaino.crt \
-  -sha256 -days 365 -nodes -subj "/CN=localhost"
+# Start development environment (generates TLS certs if needed)
+./scripts/dev-start.sh
 
-# Start Zebra first (sync takes 2-12 hours for testnet)
-docker compose up -d zebra
+# Stop development environment
+./scripts/dev-stop.sh
 
-# Wait for sync
-./check-zebra-readiness.sh
-
-# Start everything
-docker compose up -d
+# Restart after code changes
+./scripts/dev-restart.sh zaino  # Rebuild zaino after orchard/librustzcash changes
 ```
 
-**Note:** First sync is slow. See [docs/docker-deployment.md](docs/docker-deployment.md) for full deployment guide (configuration, health checks, volumes, etc.).
+**Default: Regtest mode** (no sync needed, instant blocks). See [docs/docker-deployment.md](docs/docker-deployment.md) for production deployment guide.
 
 ## Repository Structure
 
@@ -120,16 +116,12 @@ Each submodule has:
 - **Docker & Docker Compose:** For running the stack
 - **Git:** For submodules
 
-**Mac Silicon (M1/M2/M3):**
-```bash
-echo "DOCKER_PLATFORM=linux/arm64" >> .env
-```
-
 ## Notes
 
 - **Zallet removed:** Incompatible versions (requires zcash_primitives v0.19, we use v0.26)
 - **For wallet testing:** Use integration tests or zcash-devtool
 - **Sync time:** Testnet 2-12 hours, Mainnet 24-72 hours
+- **Non-Mac Silicon Users:** Comment out `DOCKER_PLATFORM=linux/arm64` in `.env` .
 
 ## Documentation
 

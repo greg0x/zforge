@@ -39,13 +39,35 @@ docker compose build zaino  # After orchard/librustzcash changes
 docker compose up -d        # Restart with new build
 ```
 
+## Development Scripts
+
+**ALWAYS use these scripts** instead of raw docker commands:
+
+**Start environment:**
+```bash
+./scripts/dev-start.sh           # Normal start
+./scripts/dev-start.sh --rebuild # Rebuild before start
+```
+
+**Stop environment:**
+```bash
+./scripts/dev-stop.sh            # Stop services
+./scripts/dev-stop.sh --clean    # Stop + remove all data
+```
+
+**Restart after code changes:**
+```bash
+./scripts/dev-restart.sh         # Rebuild all, restart
+./scripts/dev-restart.sh zaino   # Rebuild only zaino, restart
+```
+
 ## Verification Commands
 
 **Check services:**
 ```bash
 docker compose ps                    # Container status
-docker compose logs zebra --tail=20  # Zebra logs
-docker compose logs zaino --tail=20  # Zaino logs
+docker compose logs -f zebra         # Follow Zebra logs
+docker compose logs -f zaino         # Follow Zaino logs
 ```
 
 **Check connectivity:**
@@ -58,23 +80,17 @@ curl http://localhost:8080/ready    # Zebra sync status
 - Zebra: `net="Regtest"`, `Height(0)`, healthy
 - Zaino: Connected, ChainState🟢 JsonRPC🟢 gRPC🟢
 
-## Clean Slate
-
-**Remove all data and rebuild:**
-```bash
-docker compose down
-docker volume rm z3_zebra_data z3_zaino_data z3_shared_cookie_volume
-docker compose build
-docker compose up -d
-```
-
 ## For AI Agents
+
+**CRITICAL: Use development scripts, not raw docker commands.**
 
 When making protocol changes:
 1. Edit files in `orchard/` or `librustzcash/` submodules
-2. Rebuild affected services: `docker compose build zaino`
-3. Restart: `docker compose up -d`
-4. Verify logs show new behavior
-5. Commit changes in submodule first, then update main repo pointer
+2. Restart with rebuild: `./scripts/dev-restart.sh zaino`
+3. Verify logs show new behavior: `docker compose logs -f zaino`
+4. Commit changes in submodule first, then update main repo pointer
 
-**Do not** change `NETWORK_NAME` to Mainnet/Testnet for protocol work - Regtest is intentional.
+**Never:**
+- Run `docker compose up/down/build` directly (use scripts)
+- Change `NETWORK_NAME` to Mainnet/Testnet for protocol work (Regtest is intentional)
+- Start services without checking TLS certs exist (script handles this)
