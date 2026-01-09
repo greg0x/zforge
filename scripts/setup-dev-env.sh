@@ -7,6 +7,7 @@ echo ""
 # Color output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Clone submodules if not already present
@@ -29,6 +30,14 @@ setup_remotes() {
         echo "  ✓ Added upstream: ${upstream_url}"
     fi
     
+    # Ensure we're on dev branch
+    if git rev-parse --verify dev &>/dev/null; then
+        git checkout dev
+        echo "  ✓ Checked out dev branch"
+    else
+        echo "  ⚠️  dev branch not found, staying on current branch"
+    fi
+    
     # Verify remotes
     echo "  📍 origin:   $(git remote get-url origin)"
     echo "  📍 upstream: $(git remote get-url upstream)"
@@ -44,33 +53,20 @@ setup_remotes "zcash-devtool" "https://github.com/zcash/zcash-devtool.git"
 setup_remotes "orchard" "https://github.com/zcash/orchard.git"
 setup_remotes "librustzcash" "https://github.com/zcash/librustzcash.git"
 
-# Checkout the correct versions for tag-PIR development
-echo ""
-echo -e "${BLUE}🎯 Checking out compatible versions for tag-PIR development...${NC}"
-
-cd orchard
-git fetch --all --tags
-git checkout v0.11.0
-echo "  ✓ orchard → v0.11.0"
-cd ..
-
-cd librustzcash
-git fetch --all --tags
-# Find the tag that corresponds to zcash_primitives 0.26.0
-# This might be zcash_primitives-0.26.0 or similar
-git checkout zcash_primitives-0.26.0 2>/dev/null || \
-git checkout $(git tag | grep 'zcash_primitives-0.26' | head -1) 2>/dev/null || \
-echo "  ⚠️  Could not find zcash_primitives 0.26.0 tag, staying on main"
-echo "  ✓ librustzcash → zcash_primitives v0.26.0"
-cd ..
-
 echo ""
 echo -e "${GREEN}✅ Development environment setup complete!${NC}"
+echo ""
+echo -e "${YELLOW}📋 Branch Structure:${NC}"
+echo "  • z3 repo:    main (development happens here)"
+echo "  • Submodules: dev (z3 development base, pinned to compatible versions)"
+echo "  •             main (tracks upstream, sync only)"
 echo ""
 echo "📝 Next steps:"
 echo "  1. Start the stack: ./scripts/dev-start.sh"
 echo "  2. Run integration tests: ./tests/integration_test.sh"
-echo "  3. Make changes to orchard/ or librustzcash/ for tag-PIR work"
+echo "  3. Create feature branches from dev: git checkout -b feature/my-change"
 echo ""
-echo "🔄 To sync with upstream changes later:"
-echo "  cd <submodule> && git fetch upstream && git merge upstream/main"
+echo "🔄 Branch workflow:"
+echo "  • Daily work:  feature branches from 'dev'"
+echo "  • Upstreaming: create branch from 'main', cherry-pick commits"
+echo "  • See .cursor/rules/branch_workflow.mdc for details"

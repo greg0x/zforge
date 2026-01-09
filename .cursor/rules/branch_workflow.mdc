@@ -1,0 +1,70 @@
+---
+description: Branch workflow for z3 and submodules
+globs: []
+alwaysApply: true
+---
+
+# Branch Workflow
+
+## Structure
+
+**Main z3 repo:**
+- `main` - Primary development branch (submodules track `dev`)
+
+**All submodules (zebra, zaino, orchard, librustzcash, zcash-devtool):**
+- `main` - Tracks upstream official repos (sync only, don't commit here)
+- `dev` - Z3 development base (pinned to compatible versions)
+- `feature/*` - Feature branches (branch from `dev`)
+
+## Daily Workflow
+
+```bash
+# Start a new feature
+cd orchard
+git checkout dev
+git pull origin dev
+git checkout -b feature/add-tag-field
+# ... make changes ...
+git commit -m "Add tag field to Action struct"
+git push origin feature/add-tag-field
+
+# Update main z3 repo
+cd ..
+git add orchard
+git commit -m "Update orchard with tag field changes"
+```
+
+## Upstream Contribution Workflow
+
+When ready to contribute changes upstream:
+
+```bash
+cd orchard
+git checkout main
+git pull upstream main  # Sync with official zcash/orchard
+git checkout -b feature/add-tag-field-upstream main
+git cherry-pick <commits-from-feature/add-tag-field>  # or use rebase
+git push origin feature/add-tag-field-upstream
+
+# Open PR to zcash/orchard from feature/add-tag-field-upstream
+```
+
+## Syncing with Upstream
+
+Periodically sync `main` branches with official repos:
+
+```bash
+cd orchard
+git checkout main
+git fetch upstream
+git merge upstream/main
+git push origin main
+```
+
+## Agent Instructions
+
+When making changes in submodules:
+1. Ensure you're on a feature branch or `dev` branch
+2. Never commit directly to `main` branches
+3. Feature branches should branch from `dev`, not `main`
+4. When upstreaming, create a new branch from `main` with `-upstream` suffix

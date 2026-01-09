@@ -1,15 +1,20 @@
 [submodule "zebra"]
 	path = zebra
 	url = https://github.com/greg-nagy/zebra.git
+	branch = dev
 [submodule "zaino"]
 	path = zaino
 	url = https://github.com/greg-nagy/zaino.git
+	branch = dev
 [submodule "orchard"]
 	path = orchard
 	url = https://github.com/greg-nagy/orchard.git
+	branch = dev
 [submodule "librustzcash"]
 	path = librustzcash
 	url = https://github.com/greg-nagy/librustzcash.git
+	branch = dev
 [submodule "zcash-devtool"]
 	path = zcash-devtool
 	url = https://github.com/greg-nagy/zcash-devtool.git
+	branch = dev
