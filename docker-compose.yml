@@ -18,7 +18,7 @@ services:
     volumes:
       # Blockchain state (defaults to named volume 'zebra_data')
       - ${Z3_ZEBRA_DATA_PATH}:/home/zebra/.cache/zebra
-      # Cookie authentication shared with Zaino and Zallet
+      # Cookie authentication shared with Zaino
       - ${Z3_COOKIE_PATH}:${COOKIE_AUTH_FILE_DIR}
     ports:
       - "${Z3_ZEBRA_HOST_RPC_PORT}:${Z3_ZEBRA_RPC_PORT}"
@@ -89,48 +89,9 @@ services:
       retries: 3
       start_period: 60s
 
-  zallet:
-    # No pre-built image available - must build locally
-    # Built from zcash/wallet commit 60b0235 (uses zaino 13919816, before config restructure)
-    # Run 'docker compose build zallet' to build from ./zallet submodule
-    image: z3-zallet:local
-    platform: ${DOCKER_PLATFORM:-linux/amd64}
-    build:
-      context: ./zallet
-      dockerfile: Dockerfile
-    container_name: z3_zallet
-    restart: unless-stopped
-    user: "65532:65532"
-    command: ["--datadir", "/var/lib/zallet", "--config", "/etc/zallet/zallet.toml", "start"]
-    depends_on:
-      zebra:
-        condition: service_healthy
-    env_file:
-      - ./.env
-    environment:
-      - RUST_LOG=${ZALLET_RUST_LOG}
-      # Zallet configuration is handled via config/zallet.toml
-      # Environment variable overrides are currently not supported by Zallet
-    volumes:
-      # Wallet database (defaults to named volume 'zallet_data')
-      - ${Z3_ZALLET_DATA_PATH}:/var/lib/zallet
-      # Cookie authentication for Zebra access
-      - ${Z3_COOKIE_PATH}:${COOKIE_AUTH_FILE_DIR}:ro
-      # Configuration files (mounted outside datadir to avoid permission conflicts)
-      - ./config/zallet.toml:/etc/zallet/zallet.toml:ro
-      - ./config/zallet_identity.txt:/etc/zallet/identity.txt:ro
-    ports:
-      - "${ZALLET_HOST_RPC_PORT}:${ZALLET_RPC_PORT}"
-    networks:
-      - z3_net
-    # NOTE: Healthcheck disabled - distroless image has no shell/curl
-    # Zallet will restart automatically if it crashes (restart: unless-stopped)
-    # Monitor logs or use external monitoring for service health
-
 volumes:
   zebra_data:
   zaino_data:
-  zallet_data:
   shared_cookie_volume:
 
 networks:

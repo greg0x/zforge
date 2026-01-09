@@ -16,6 +16,9 @@ target/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+# Local environment overrides (not committed)
+.env.local
+
 # Ignore all contents of the 'config' directory except structure
 config/**
 !config/.gitkeep
