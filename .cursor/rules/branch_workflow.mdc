@@ -9,24 +9,31 @@ alwaysApply: true
 ## Structure
 
 **Main z3 repo:**
-- `main` - Primary development branch (submodules track `dev`)
+- `main` - Primary development branch (submodules track `main`)
 
 **All submodules (zebra, zaino, orchard, librustzcash, zcash-devtool):**
-- `main` - Tracks upstream official repos (sync only, don't commit here)
-- `dev` - Z3 development base (pinned to compatible versions)
-- `feature/*` - Feature branches (branch from `dev`)
+- `main` - Z3 development base (DEFAULT, pinned to compatible versions)
+- `feature/*` - Feature branches (branch from `main`)
+- `pr/*` - Upstream PR branches (branch from `upstream/main`)
+
+**Note:** `upstream/main` is a remote ref, not a local branch. Use `git fetch upstream` to update it.
 
 ## Daily Workflow
 
 ```bash
 # Start a new feature
 cd orchard
-git checkout dev
-git pull origin dev
+git checkout main
+git pull origin main
 git checkout -b feature/add-tag-field
 # ... make changes ...
 git commit -m "Add tag field to Action struct"
 git push origin feature/add-tag-field
+
+# When feature is ready, merge to main
+git checkout main
+git merge feature/add-tag-field
+git push origin main
 
 # Update main z3 repo
 cd ..
@@ -40,31 +47,45 @@ When ready to contribute changes upstream:
 
 ```bash
 cd orchard
-git checkout main
-git pull upstream main  # Sync with official zcash/orchard
-git checkout -b feature/add-tag-field-upstream main
-git cherry-pick <commits-from-feature/add-tag-field>  # or use rebase
-git push origin feature/add-tag-field-upstream
+git fetch upstream                           # Get latest upstream
+git checkout -b pr/add-tag-field upstream/main   # Branch from upstream
+git cherry-pick <commits>                    # Pick your commits
+git push origin pr/add-tag-field             # Push to your fork
 
-# Open PR to zcash/orchard from feature/add-tag-field-upstream
+# Open PR: your-fork/orchard:pr/add-tag-field → zcash/orchard:main
 ```
 
 ## Syncing with Upstream
 
-Periodically sync `main` branches with official repos:
+When you want to pull in upstream changes to your `main`:
 
 ```bash
 cd orchard
-git checkout main
 git fetch upstream
-git merge upstream/main
+git checkout main
+git merge upstream/main   # Or rebase if preferred
+# Resolve any conflicts
 git push origin main
+
+# Update z3 main repo
+cd ..
+git add orchard
+git commit -m "Sync orchard with upstream changes"
 ```
+
+## Version Compatibility
+
+All submodule `main` branches must use compatible versions:
+- orchard 0.11.x / sapling-crypto 0.5.x (Zebra constraint)
+- zcash_client_backend 0.21.x / zcash_keys 0.12.x
+
+Run `scripts/setup-fork-branches.sh` to verify/fix compatibility.
 
 ## Agent Instructions
 
 When making changes in submodules:
-1. Ensure you're on a feature branch or `dev` branch
-2. Never commit directly to `main` branches
-3. Feature branches should branch from `dev`, not `main`
-4. When upstreaming, create a new branch from `main` with `-upstream` suffix
+1. Ensure you're on `main` or a `feature/*` branch
+2. Feature branches should branch from `main`
+3. For upstream PRs, create `pr/*` branches from `upstream/main`
+4. Never force-push to `main` without coordination
+5. Always test that changes compile with other submodules

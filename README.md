@@ -2,46 +2,37 @@
 
 A development environment for Zcash protocol work combining Zebra (full node), Zaino (indexer), zcash-devtool (wallet/testing), and local forks of orchard and librustzcash.
 
-## Quick Start for Developers
+## Quick Start
 
 ```bash
-# 1. Clone with submodules
+# Clone with submodules
 git clone --recursive https://github.com/greg-nagy/z3.git
 cd z3
 
-# 2. Verify compilation
-cd zebra && cargo check --workspace && cd ..
-cd zaino && cargo check --workspace && cd ..
-# ✅ Both should succeed
+# Install overmind (process manager)
+brew install overmind  # macOS
+# or: go install github.com/DarthSim/overmind/v2@latest
+
+# Start the stack
+overmind start
 ```
 
-**Optional:** Run `./scripts/setup-dev-env.sh` to add upstream remotes for syncing with official repos.
+That's it. You'll see unified, color-coded logs from both Zebra and Zaino. Press `Ctrl+C` to stop.
 
-**What you get:**
-- Submodules at correct commits (orchard v0.11.0, librustzcash @ zcash_transparent-0.6.3)
-- Local patches active - changes to `orchard/` or `librustzcash/` propagate immediately
-- Ready to build and develop
+## Development Workflow
 
-## Version Info
+```bash
+# Start services (first run compiles, subsequent runs are fast)
+overmind start
 
-| Component | Version | Latest | Why Pinned |
-|-----------|---------|--------|------------|
-| zebra | v3.1.0 | v3.1.0 | ✅ Current |
-| zaino | v0.1.2-rc3 | v0.1.2-rc3 | ✅ Current |
-| orchard | v0.11.0 | v0.12.0 | zebra compatibility |
-| librustzcash | @ zcash_transparent-0.6.3 | Newer | zebra compatibility |
+# Restart just one service after code changes
+overmind restart zaino
 
-**Why these versions?** Zebra v3.1.0 requires orchard v0.11.0 (v0.12.0 has breaking changes) and zcash_transparent v0.6.3.
-
-**Cargo patches active in zebra/Cargo.toml and zaino/Cargo.toml:**
-```toml
-[patch.crates-io]
-orchard = { path = "../orchard" }
-zcash_primitives = { path = "../librustzcash/zcash_primitives" }
-# ... all zcash_* crates patched to local versions
+# Stop everything
+Ctrl+C  # or: overmind stop
 ```
 
-## Making Changes
+### Making Changes
 
 Edit orchard or librustzcash - changes propagate immediately:
 
@@ -49,114 +40,81 @@ Edit orchard or librustzcash - changes propagate immediately:
 cd orchard
 git checkout -b feature/my-change
 # ... edit files ...
-git commit -m "Add feature"
-git push origin feature/my-change
 
-# Test with Docker stack (rebuilds with your changes)
-cd ..
-./scripts/dev-restart.sh zaino
-
-# Or test compilation directly
-cd zebra && cargo check  # ✅ Uses ../orchard
-cd ../zaino && cargo check  # ✅ Uses ../orchard
+# Restart to pick up changes (cargo rebuilds automatically)
+overmind restart zaino
 ```
 
-## Committing Your Work
+### Running Services Manually
 
-**In submodules:**
-```bash
-cd zebra  # or zaino, orchard, librustzcash
-git checkout -b feature/your-change
-git add <files>
-git commit  # See .cursorrules for commit message guidelines
-git push origin feature/your-change
-```
-
-**In main z3 repo (to update submodule pointers):**
-```bash
-git add zebra  # or whichever submodule changed
-git commit -m "Update zebra with feature X"
-git push origin dev
-```
-
-See `.cursor/rules/` for detailed commit and submodule guidelines.
-
-## Running the Stack
+If you prefer separate terminals or need to debug:
 
 ```bash
-# Start development environment
-./scripts/dev-start.sh           # Generates TLS certs if needed
-./scripts/dev-start.sh --rebuild # Force rebuild before start
+# Terminal 1 - Zebra
+cargo run --release -p zebrad --features internal-miner \
+  --manifest-path zebra/Cargo.toml -- -c config/zebra-regtest.toml
 
-# Verify stack is working
-./tests/integration_test.sh      # Run integration tests
-
-# Stop development environment  
-./scripts/dev-stop.sh            # Stop services
-./scripts/dev-stop.sh --clean    # Stop + remove all data
-
-# Restart after code changes
-./scripts/dev-restart.sh         # Rebuild all services
-./scripts/dev-restart.sh zaino   # Rebuild only zaino
+# Terminal 2 - Zaino (after Zebra starts)
+cargo run --release -p zainod \
+  --manifest-path zaino/Cargo.toml -- -c config/zaino-regtest.toml
 ```
 
-**Default: Regtest mode** (no sync needed, instant blocks for protocol development).
+## Configuration
 
-> [!TIP]
-> **Mac Silicon (M1/M2/M3):** Uncomment `DOCKER_PLATFORM=linux/arm64` in `.env` for native builds (3 min vs 50 min).
+- `config/zebra-regtest.toml` - Zebra config (Regtest, internal miner, ephemeral state)
+- `config/zaino-regtest.toml` - Zaino config (connects to local Zebra)
 
-See [docs/docker-deployment.md](docs/docker-deployment.md) for production deployment guide.
+**Default: Regtest mode** - No sync needed, instant blocks for protocol development.
 
 ## Repository Structure
 
 ```
 z3/
-├── zebra/          Full node (greg-nagy/zebra → ZcashFoundation/zebra)
-├── zaino/          Indexer (greg-nagy/zaino → zingolabs/zaino)
-├── zcash-devtool/  Wallet/testing CLI (greg-nagy/zcash-devtool → zcash/zcash-devtool)
-├── orchard/        Orchard protocol (greg-nagy/orchard → zcash/orchard)
-└── librustzcash/   Zcash primitives (greg-nagy/librustzcash → zcash/librustzcash)
+├── zebra/          Full node (Zebra)
+├── zaino/          Indexer (Zaino)
+├── zcash-devtool/  Wallet/testing CLI
+├── orchard/        Orchard protocol (local fork)
+├── librustzcash/   Zcash primitives (local fork)
+├── config/         Service configuration files
+└── Procfile        Process definitions for overmind
 ```
 
-Each submodule has:
-- `origin` → your fork (push here)
-- `upstream` → official repo (sync from here)
+**Cargo patches are active** - changes to `orchard/` or `librustzcash/` are picked up by zebra and zaino automatically.
 
-## Tag-PIR Testing Workflow
+## Committing Your Work
 
-This environment is set up for tag-PIR protocol development:
-
-1. **Make changes** to `orchard/` or `librustzcash/` (add tag field to Orchard actions)
-2. **Create transactions** with `zcash-devtool` (uses your modified librustzcash)
-3. **Mine blocks** with Zebra's internal miner (Regtest mode)
-4. **Verify indexing** with Zaino (extracts tags from CompactOrchardAction)
-5. **Run integration tests** to verify end-to-end functionality
-
+**In submodules:**
 ```bash
-# Example: Generate a block after making protocol changes
-curl -X POST http://localhost:18232 \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"generate","params":[1],"id":1}'
+cd orchard  # or zaino, zebra, librustzcash
+git checkout -b feature/your-change
+git add <files>
+git commit -m "Add feature"
+git push origin feature/your-change
 ```
+
+**In main z3 repo (to update submodule pointers):**
+```bash
+git add orchard  # whichever submodule changed
+git commit -m "Update orchard with feature X"
+```
+
+## Version Info
+
+| Component | Version | Notes |
+|-----------|---------|-------|
+| zebra | v3.1.0 | Current |
+| zaino | v0.1.2-rc3 | Current |
+| orchard | v0.11.0 | Pinned for zebra compatibility |
+| librustzcash | @ zcash_transparent-0.6.3 | Pinned for zebra compatibility |
 
 ## Prerequisites
 
 - **Rust:** Latest stable toolchain
-- **Docker & Docker Compose:** For running the stack
-- **Git:** For submodules
-- **OpenSSL:** For generating TLS certificates (usually pre-installed)
+- **overmind:** `brew install overmind` (or foreman: `gem install foreman`)
 
-## Notes
+## Setup Remotes (Optional)
 
-- **Network:** Default is Regtest (no sync, instant blocks for protocol development)
-- **Mining:** Zebra's internal miner is enabled for on-demand block generation
-- **Wallet/Testing:** Use `zcash-devtool` for creating transactions (patched to use local libs)
-- **Mac Silicon:** Set `DOCKER_PLATFORM=linux/arm64` in `.env` for native builds (faster)
-
-## Documentation
-
-- **[docs/docker-deployment.md](docs/docker-deployment.md)** - Full Docker deployment guide
-- **[.cursor/rules/](/.cursor/rules/)** - Commit guidelines, submodule workflow, dev environment rules
+Run `./scripts/setup-dev-env.sh` to add upstream remotes for syncing with official repos.
 
 ## License
 

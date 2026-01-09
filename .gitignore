@@ -19,8 +19,8 @@ target/
 # Local environment overrides (not committed)
 .env.local
 
-# Ignore all contents of the 'config' directory except structure
-config/**
-!config/.gitkeep
-!config/tls/
-!config/tls/.gitkeep
+# Overmind socket
+.overmind.sock
+
+# Config directory - ignore generated files, keep committed configs
+config/tls/

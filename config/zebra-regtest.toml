@@ -1,0 +1,28 @@
+# Zebra Regtest Configuration for Z3 Development
+# Minimal config for local protocol development
+
+[network]
+network = "Regtest"
+
+# Activate NU5 at block 1 (Canopy always at 1)
+[network.testnet_parameters.activation_heights]
+NU5 = 1
+
+[state]
+# Ephemeral state - fresh chain each restart
+# Set to false if you want persistent chain state
+ephemeral = true
+cache_dir = ".data/zebra"
+
+[rpc]
+listen_addr = "127.0.0.1:18232"
+# Disable cookie auth for local development
+enable_cookie_auth = false
+
+[mining]
+# Internal miner for automatic block generation
+internal_miner = true
+miner_address = "t27eWDgjFYJGVXmzrXeVjnb5J3uXDM9xH9v"
+
+[tracing]
+filter = "info"

@@ -1,0 +1,31 @@
+# Zaino Regtest Configuration for Z3 Development
+# Connects to local Zebra node
+
+# Use fetch backend (JsonRPC to Zebra)
+backend = "fetch"
+
+# Network must match Zebra
+network = "Regtest"
+
+[grpc_settings]
+# Zaino gRPC server for wallet connections
+grpc_listen_address = "127.0.0.1:8137"
+# No TLS for local development
+
+[validator_settings]
+# Connect to local Zebra RPC
+validator_jsonrpc_listen_address = "127.0.0.1:18232"
+# No authentication for local development
+
+[service]
+# Service timeouts (defaults are fine for dev)
+
+[storage]
+# Cache and database settings
+
+[storage.cache]
+# Mempool cache settings (defaults)
+
+[storage.database]
+# Zaino database location
+path = ".data/zaino"

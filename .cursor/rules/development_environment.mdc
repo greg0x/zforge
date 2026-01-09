@@ -1,6 +1,6 @@
 ---
-description: Development environment setup and Docker workflow
-globs: ["Dockerfile*", "docker-compose*.yml", ".env*", ".dockerignore"]
+description: Development environment setup and native workflow
+globs: ["Procfile", "config/*.toml"]
 alwaysApply: false
 ---
 
@@ -13,18 +13,32 @@ alwaysApply: false
 - Perfect for testing protocol changes
 - Genesis block at Height(0)
 
-**Switching networks:** Edit `.env` → `NETWORK_NAME=` (Mainnet/Testnet/Regtest)
+## Running Services
 
-## Docker Build Context
+Use overmind (or foreman) with the Procfile:
 
-**Zaino requires parent context** due to local patches:
-```yaml
-build:
-  context: .                    # z3 root (includes submodules)
-  dockerfile: Dockerfile.zaino  # not zaino/Dockerfile
+```bash
+overmind start         # Start both services, unified logs
+overmind restart zaino # Restart just zaino after code changes
+Ctrl+C                 # Stop everything
 ```
 
-**Why:** Zaino patches reference `../orchard` and `../librustzcash` which must be in build context.
+Or run manually in separate terminals:
+
+```bash
+# Terminal 1
+cargo run --release -p zebrad --features internal-miner \
+  --manifest-path zebra/Cargo.toml -- -c config/zebra-regtest.toml
+
+# Terminal 2
+cargo run --release -p zainod \
+  --manifest-path zaino/Cargo.toml -- -c config/zaino-regtest.toml
+```
+
+## Configuration Files
+
+- `config/zebra-regtest.toml` - Zebra configuration (Regtest, internal miner)
+- `config/zaino-regtest.toml` - Zaino configuration (connects to local Zebra)
 
 ## Local Patches Active
 
@@ -32,67 +46,19 @@ All services use local submodule versions (no crates.io):
 - `zaino` → `../orchard`, `../librustzcash`
 - `zebra` → `../orchard`, `../librustzcash` (via Cargo.toml patches)
 
-**Changes propagate immediately** - just rebuild:
+**Changes propagate immediately** - just restart:
 ```bash
-cd /Users/greg/dev/zcash/z3
-docker compose build zaino  # After orchard/librustzcash changes
-docker compose up -d        # Restart with new build
+# After editing orchard/ or librustzcash/
+overmind restart zaino
 ```
-
-## Development Scripts
-
-**ALWAYS use these scripts** instead of raw docker commands:
-
-**Start environment:**
-```bash
-./scripts/dev-start.sh           # Normal start
-./scripts/dev-start.sh --rebuild # Rebuild before start
-```
-
-**Stop environment:**
-```bash
-./scripts/dev-stop.sh            # Stop services
-./scripts/dev-stop.sh --clean    # Stop + remove all data
-```
-
-**Restart after code changes:**
-```bash
-./scripts/dev-restart.sh         # Rebuild all, restart
-./scripts/dev-restart.sh zaino   # Rebuild only zaino, restart
-```
-
-## Verification Commands
-
-**Run integration tests:**
-```bash
-./tests/integration_test.sh  # Comprehensive stack verification
-```
-
-**Manual checks:**
-```bash
-docker compose ps                    # Container status
-docker compose logs -f zebra         # Follow Zebra logs
-docker compose logs -f zaino         # Follow Zaino logs
-curl http://localhost:8080/healthy  # Zebra health
-curl http://localhost:8080/ready    # Zebra sync status
-```
-
-**Expected baseline:**
-- All integration tests pass (12/12)
-- Zebra: `net="Regtest"`, `Height(0)`, healthy
-- Zaino: Connected, ChainState🟢 JsonRPC🟢 gRPC🟢
 
 ## For AI Agents
 
-**CRITICAL: Use development scripts, not raw docker commands.**
-
 When making protocol changes:
 1. Edit files in `orchard/` or `librustzcash/` submodules
-2. Restart with rebuild: `./scripts/dev-restart.sh zaino`
-3. Verify logs show new behavior: `docker compose logs -f zaino`
+2. Restart: `overmind restart zaino`
+3. Logs appear in the overmind terminal
 4. Commit changes in submodule first, then update main repo pointer
 
 **Never:**
-- Run `docker compose up/down/build` directly (use scripts)
-- Change `NETWORK_NAME` to Mainnet/Testnet for protocol work (Regtest is intentional)
-- Start services without checking TLS certs exist (script handles this)
+- Change `network` in config to Mainnet/Testnet for protocol work (Regtest is intentional)

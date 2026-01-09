@@ -1,16 +1,29 @@
 ---
 description: Workflow for making changes in Git submodules
-globs: ["zebra/**", "zaino/**", "orchard/**", "librustzcash/**", "zcashd/**"]
+globs: ["zebra/**", "zaino/**", "orchard/**", "librustzcash/**", "zcash-devtool/**"]
 alwaysApply: false
 ---
 
 # Submodule Workflow
 
-## Making changes in submodules
+## Branch Structure (All Forks)
+
+```
+main          → Z3-compatible development (DEFAULT)
+                All z3 development happens here or branches from here
+                
+feature/*     → Feature branches (branch from main)
+
+upstream/main → Remote ref only (not a local branch)
+                Used for creating upstream PRs
+```
+
+## Making Changes in Submodules
 
 1. **Work in the submodule:**
    ```bash
-   cd zebra  # or zaino, orchard, librustzcash
+   cd zebra  # or zaino, orchard, librustzcash, zcash-devtool
+   git checkout main
    git checkout -b feature/your-change
    # ... make changes ...
    git add <files>
@@ -18,26 +31,59 @@ alwaysApply: false
    git push origin feature/your-change
    ```
 
-2. **Update main repo to point to new commit:**
+2. **Merge to main when ready:**
+   ```bash
+   git checkout main
+   git merge feature/your-change
+   git push origin main
+   ```
+
+3. **Update z3 main repo to point to new commit:**
    ```bash
    cd /Users/greg/dev/zcash/z3
    git add zebra  # or whichever submodule(s) changed
    git commit -m "Update zebra with feature X"
-   git push origin dev
+   git push
    ```
 
-## Key points
+## Contributing Changes Upstream
+
+When you want to submit a PR to the official upstream repository:
+
+```bash
+cd orchard  # or any submodule
+git fetch upstream
+git checkout -b pr/feature-xyz upstream/main  # Branch from upstream's main
+git cherry-pick <commits>                      # Pick your commits
+git push origin pr/feature-xyz                 # Push to your fork
+# Open PR: your-fork/orchard:pr/feature-xyz → zcash/orchard:main
+```
+
+## Version Compatibility
+
+All submodules must use compatible versions:
+- **orchard**: 0.11.x
+- **sapling-crypto**: 0.5.x
+- **zcash_client_backend**: 0.21.x
+- **zcash_keys**: 0.12.x
+
+These constraints exist because Zebra hasn't updated to newer orchard/sapling versions.
+
+## Key Points
 
 - Submodules track specific commits (not branches)
 - Push submodule changes BEFORE pushing main repo
 - Main repo commit updates the submodule pointer
-- Assumption: You have push access to all fork repos
+- `main` branches should stay z3-compatible
+- Use `pr/*` branches for upstream contributions
 
 ## For AI Agents
 
 When making changes to files in submodules:
 
-1. After editing files in a submodule, commit in that submodule directory
-2. Return to main repo root and commit the submodule pointer update
-3. Both commits require `required_permissions: ['git_write']`
-4. Follow commit message guidelines from commit_guidelines.mdc
+1. Check you're on `main` or a feature branch (not upstream tracking)
+2. After editing files in a submodule, commit in that submodule directory
+3. Return to main repo root and commit the submodule pointer update
+4. Both commits require `required_permissions: ['git_write']`
+5. Follow commit message guidelines from commit_guidelines.mdc
+6. Never commit directly to a branch that tracks upstream
