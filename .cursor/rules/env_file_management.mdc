@@ -1,0 +1,46 @@
+---
+description: Guidelines for managing .env files
+globs:
+  - ".env"
+  - ".env.local"
+alwaysApply: false
+---
+
+# .env File Management
+
+## Structure
+
+The `.env` file is organized into sections:
+1. **Variable Hierarchy** - Quick reference
+2. **Z3 Stack Infrastructure** - Docker Compose variables (Z3_*)
+3. **Docker Platform** - Architecture settings
+4. **Common Configuration** - Shared across services
+5. **Zebra Configuration** - Zebra-specific settings (ZEBRA_*)
+6. **Zaino Configuration** - Zaino-specific settings (ZAINO_*)
+
+## Rules
+
+1. **Always use `cat .env`** to read the file (not `sed`, `grep`, or partial reads)
+2. **Preserve structure** - Keep sections intact with their comments
+3. **Add new variables** in the appropriate section
+4. **Use descriptive comments** for new variables
+5. **Follow naming conventions**:
+   - `Z3_*` for Docker Compose infrastructure
+   - `ZEBRA_*` for Zebra application config
+   - `ZAINO_*` for Zaino application config
+   - `SCREAMING_SNAKE_CASE` for all variables
+
+## Agent Instructions
+
+When modifying `.env`:
+1. Read the entire file first with `cat .env`
+2. Identify the correct section for changes
+3. Preserve all comments and structure
+4. Test changes by restarting affected services
+5. Document why the change was made in commit message
+
+## Security
+
+- `.env` is committed (contains defaults)
+- `.env.local` is gitignored (for local overrides)
+- Never commit sensitive credentials to `.env`
