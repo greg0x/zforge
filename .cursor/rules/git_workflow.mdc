@@ -1,0 +1,70 @@
+---
+description: Git workflow for z3 and submodules
+globs: ["zebra/**", "zaino/**", "orchard/**", "librustzcash/**", "zcash-devtool/**"]
+alwaysApply: true
+---
+
+# Git Workflow
+
+## Always Use ./dev git
+
+```bash
+./dev git status          # Status across all repos
+./dev git branch <name>   # Create feature branch
+./dev git commit <msg>    # Commit across submodules
+./dev git push            # Push all repos
+./dev git sync            # Fetch upstream
+```
+
+**Never use raw git commands** for routine operations.
+
+## Branch Naming
+
+| Branch | Purpose |
+|--------|---------|
+| `main` | Z3 development (default, pinned versions) |
+| `feature/*` | Feature branches (from main) |
+| `pr/*` | Upstream PRs (from upstream/main) |
+
+## Daily Workflow
+
+```bash
+# 1. Start feature (creates in orchard + librustzcash by default)
+./dev git branch add-tag-field
+
+# 2. Make changes
+cd orchard && vim src/action.rs
+
+# 3. Commit across all dirty repos
+./dev git commit "Add tag field to Action struct"
+
+# 4. Push everything
+./dev git push
+```
+
+## Upstream Contributions
+
+For PRs to official upstream repos (manual git required):
+
+```bash
+cd orchard
+git fetch upstream
+git checkout -b pr/feature-xyz upstream/main
+git cherry-pick <commits>
+git push origin pr/feature-xyz
+# Open PR: your-fork → zcash/orchard:main
+```
+
+## Version Compatibility
+
+All submodules must use compatible versions:
+- orchard 0.11.x / sapling-crypto 0.5.x (Zebra constraint)
+- zcash_client_backend 0.21.x / zcash_keys 0.12.x
+
+## Agent Instructions
+
+1. Use `./dev git branch <name>` to start features
+2. Use `./dev git commit "message"` to commit everywhere
+3. Use `./dev git push` to push all repos
+4. Requires `required_permissions: ['git_write']`
+5. For upstream PRs, use manual git with `pr/*` branch naming
