@@ -70,8 +70,9 @@ cmd_setup() {
     
     check_tool "git" "Install git" || missing=1
     check_tool "cargo" "Install Rust: https://rustup.rs" || missing=1
-    check_tool "protoc" "brew install protobuf (or mise install)" || missing=1
-    check_tool "overmind" "brew install overmind" || missing=1
+    check_tool "tmux" "brew install tmux (required by overmind)" || missing=1
+    check_tool "protoc" "mise install (or brew install protobuf)" || missing=1
+    check_tool "overmind" "mise install (or brew install overmind)" || missing=1
     
     # Optional but recommended
     echo ""

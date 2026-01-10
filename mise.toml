@@ -14,9 +14,8 @@ protobuf = "29"
 # GitHub CLI (for fork command)
 github-cli = "2.65"
 
-# Process manager for running services
-# Note: overmind requires tmux and isn't in mise registry
-# Install via: brew install overmind
+# Process manager for running services (requires tmux)
+"go:github.com/DarthSim/overmind/v2" = "latest"
 
 [env]
 # Ensure cargo uses the workspace target directory for shared builds
