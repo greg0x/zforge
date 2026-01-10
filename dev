@@ -38,11 +38,14 @@ print_help() {
     echo "  git push            Push all repos"
     echo "  git sync            Fetch upstream, show drift"
     echo ""
+    echo "Onboarding:"
+    echo "  fork      Fork all repos to your GitHub account"
+    echo ""
     echo "Examples:"
+    echo "  ./dev fork                           # Fork all repos (new contributor)"
     echo "  ./dev setup                          # First-time setup"
     echo "  ./dev up                             # Start services"
     echo "  ./dev git branch add-tag-field       # Start feature"
-    echo "  ./dev git commit \"Add tag field\"     # Commit everywhere"
 }
 
 check_tool() {
@@ -74,6 +77,7 @@ cmd_setup() {
     echo ""
     echo "Checking optional tools..."
     check_tool "mise" "https://mise.jdx.dev (recommended for tool management)" || true
+    check_tool "gh" "brew install gh (for ./dev fork)" || true
     
     if [ $missing -eq 1 ]; then
         echo ""
@@ -368,6 +372,97 @@ cmd_git() {
     esac
 }
 
+# --- Fork Command ---
+
+get_upstream() {
+    local sub="$1"
+    case "$sub" in
+        zebra)        echo "ZcashFoundation/zebra" ;;
+        zaino)        echo "zingolabs/zaino" ;;
+        orchard)      echo "zcash/orchard" ;;
+        librustzcash) echo "zcash/librustzcash" ;;
+        zcash-devtool) echo "zcash/zcash-devtool" ;;
+        *)            echo "" ;;
+    esac
+}
+
+cmd_fork() {
+    echo -e "${BLUE}🍴 Zforge Fork Setup${NC}"
+    echo ""
+    
+    # Check gh CLI
+    if ! command -v gh &> /dev/null; then
+        echo -e "${RED}Error: gh (GitHub CLI) not found${NC}"
+        echo "Install with: mise install (or brew install gh)"
+        exit 1
+    fi
+    
+    # Check gh auth
+    if ! gh auth status &>/dev/null; then
+        echo -e "${RED}Error: Not logged into GitHub CLI${NC}"
+        echo "Run: gh auth login"
+        exit 1
+    fi
+    
+    # Get GitHub username
+    local github_user
+    github_user=$(gh api user -q .login)
+    echo -e "GitHub user: ${GREEN}$github_user${NC}"
+    echo ""
+    
+    # Fork each submodule
+    for sub in $SUBMODULES; do
+        local upstream
+        upstream=$(get_upstream "$sub")
+        if [ -z "$upstream" ]; then
+            echo -e "${YELLOW}Skipping $sub (no upstream defined)${NC}"
+            continue
+        fi
+        
+        echo -e "${BLUE}$sub${NC} (upstream: $upstream)"
+        
+        # Check if fork already exists
+        if gh repo view "$github_user/$sub" &>/dev/null; then
+            echo -e "  ${GREEN}✓${NC} Fork exists"
+        else
+            echo -e "  Forking $upstream..."
+            gh repo fork "$upstream" --clone=false
+            echo -e "  ${GREEN}✓${NC} Forked"
+        fi
+        
+        # Update submodule remote
+        if [ -d "$sub" ]; then
+            (cd "$sub" && git remote set-url origin "https://github.com/$github_user/$sub.git")
+            # Add upstream if not exists
+            if ! (cd "$sub" && git remote get-url upstream &>/dev/null); then
+                (cd "$sub" && git remote add upstream "https://github.com/$upstream.git")
+            fi
+            echo -e "  ${GREEN}✓${NC} Remotes configured"
+        fi
+        echo ""
+    done
+    
+    # Update main repo remote
+    echo -e "${BLUE}zforge${NC} (main repo)"
+    git remote set-url origin "https://github.com/$github_user/zforge.git" 2>/dev/null || \
+        git remote add origin "https://github.com/$github_user/zforge.git"
+    echo -e "  ${GREEN}✓${NC} Origin set to your fork"
+    echo ""
+    
+    echo -e "${GREEN}✅ Fork setup complete!${NC}"
+    echo ""
+    echo "Your forks:"
+    echo "  https://github.com/$github_user/zforge"
+    for sub in $SUBMODULES; do
+        echo "  https://github.com/$github_user/$sub"
+    done
+    echo ""
+    echo "Next steps:"
+    echo "  ./dev setup    # Initialize submodules"
+    echo "  ./dev build    # Build zcash-devtool"
+    echo "  ./dev up       # Start services"
+}
+
 # Main
 case "${1:-help}" in
     setup)
@@ -397,6 +492,9 @@ case "${1:-help}" in
     git)
         shift
         cmd_git "$@"
+        ;;
+    fork)
+        cmd_fork
         ;;
     help|--help|-h)
         print_help

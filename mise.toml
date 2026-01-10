@@ -1,4 +1,4 @@
-# Z3 Development Tools
+# Zforge Development Tools
 # 
 # Rust versions are managed by rust-toolchain.toml in each submodule.
 # This file pins external tools only.
@@ -11,10 +11,12 @@
 # Protocol buffer compiler (for gRPC)
 protobuf = "29"
 
+# GitHub CLI (for fork command)
+github-cli = "2.65"
+
 # Process manager for running services
-# Note: mise doesn't have overmind, install via:
-#   brew install overmind (macOS)
-#   go install github.com/DarthSim/overmind/v2@latest
+# Note: overmind requires tmux and isn't in mise registry
+# Install via: brew install overmind
 
 [env]
 # Ensure cargo uses the workspace target directory for shared builds
