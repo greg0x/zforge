@@ -17,6 +17,12 @@ github-cli = "2.65"
 # Process manager for running services (requires tmux)
 "go:github.com/DarthSim/overmind/v2" = "latest"
 
+# JSON processor (helpful for RPC debugging)
+jq = "1.7"
+
+# gRPC CLI (for testing Zaino endpoints)
+grpcurl = "1.9"
+
 [env]
 # Ensure cargo uses the workspace target directory for shared builds
 # (Each submodule still gets its own due to different rust-toolchain.toml)

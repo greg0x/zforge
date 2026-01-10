@@ -78,7 +78,10 @@ cmd_setup() {
     echo ""
     echo "Checking optional tools..."
     check_tool "mise" "https://mise.jdx.dev (recommended for tool management)" || true
-    check_tool "gh" "brew install gh (for ./dev fork)" || true
+    check_tool "gh" "mise install (for ./dev fork)" || true
+    check_tool "jq" "mise install (for JSON parsing)" || true
+    check_tool "grpcurl" "mise install (for gRPC testing)" || true
+    check_tool "docker" "https://docker.com (for CI/deployment)" || true
     
     if [ $missing -eq 1 ]; then
         echo ""
