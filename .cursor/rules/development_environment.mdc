@@ -1,44 +1,39 @@
 ---
 description: Development environment setup and native workflow
-globs: ["Procfile", "config/*.toml"]
+globs: ["Procfile", "config/*.toml", "dev", "mise.toml"]
 alwaysApply: false
 ---
 
 # Development Environment Guidelines
+
+## CLI Commands
+
+Always use `./dev` for service and git operations:
+
+```bash
+# Services
+./dev up        # Start services
+./dev stop      # Stop services
+./dev restart   # Restart services
+./dev status    # Check health
+./dev logs      # Follow logs
+./dev test      # Run integration tests
+
+# Git (multi-repo)
+./dev git status          # Status across all repos
+./dev git branch <name>   # Create feature branch
+./dev git commit <msg>    # Commit across submodules
+./dev git push            # Push all repos
+./dev git sync            # Fetch upstream
+```
+
+**Never use raw overmind/git commands** - `./dev` handles multi-repo coordination.
 
 ## Network Configuration
 
 **Default: Regtest** - For protocol development
 - No sync required (instant, on-demand blocks)
 - Perfect for testing protocol changes
-- Genesis block at Height(0)
-
-## Running Services
-
-Use overmind (or foreman) with the Procfile:
-
-```bash
-overmind start         # Start both services, unified logs
-overmind restart zaino # Restart just zaino after code changes
-Ctrl+C                 # Stop everything
-```
-
-Or run manually in separate terminals:
-
-```bash
-# Terminal 1
-cargo run --release -p zebrad --features internal-miner \
-  --manifest-path zebra/Cargo.toml -- -c config/zebra-regtest.toml
-
-# Terminal 2
-cargo run --release -p zainod \
-  --manifest-path zaino/Cargo.toml -- -c config/zaino-regtest.toml
-```
-
-## Configuration Files
-
-- `config/zebra-regtest.toml` - Zebra configuration (Regtest, internal miner)
-- `config/zaino-regtest.toml` - Zaino configuration (connects to local Zebra)
 
 ## Local Patches Active
 
@@ -49,16 +44,20 @@ All services use local submodule versions (no crates.io):
 **Changes propagate immediately** - just restart:
 ```bash
 # After editing orchard/ or librustzcash/
-overmind restart zaino
+./dev restart
 ```
 
 ## For AI Agents
 
 When making protocol changes:
-1. Edit files in `orchard/` or `librustzcash/` submodules
-2. Restart: `overmind restart zaino`
-3. Logs appear in the overmind terminal
-4. Commit changes in submodule first, then update main repo pointer
+1. Start feature: `./dev git branch my-feature`
+2. Edit files in `orchard/` or `librustzcash/`
+3. Restart: `./dev restart`
+4. Test: `./dev test`
+5. Commit: `./dev git commit "description"`
+6. Push: `./dev git push`
 
 **Never:**
-- Change `network` in config to Mainnet/Testnet for protocol work (Regtest is intentional)
+- Use raw `git` commands in submodules (use `./dev git`)
+- Use raw `overmind` commands (use `./dev up/stop/restart`)
+- Change `network` in config to Mainnet/Testnet (Regtest is intentional)

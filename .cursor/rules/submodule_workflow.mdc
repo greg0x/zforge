@@ -6,49 +6,46 @@ alwaysApply: false
 
 # Submodule Workflow
 
+## Use ./dev git Commands
+
+**Always use `./dev git` for multi-repo operations:**
+
+```bash
+./dev git status          # Status across all repos
+./dev git branch <name>   # Create feature branch
+./dev git commit <msg>    # Commit across submodules
+./dev git push            # Push all repos
+./dev git sync            # Fetch upstream
+```
+
+## Making Protocol Changes
+
+```bash
+# 1. Start feature branch (creates in orchard + librustzcash by default)
+./dev git branch add-tag-field
+
+# 2. Make changes in submodules
+cd orchard
+# ... edit files ...
+
+# 3. Commit across all dirty repos + update main repo pointer
+./dev git commit "Add tag field to Action struct"
+
+# 4. Push everything
+./dev git push
+```
+
 ## Branch Structure (All Forks)
 
 ```
 main          → Z3-compatible development (DEFAULT)
-                All z3 development happens here or branches from here
-                
 feature/*     → Feature branches (branch from main)
-
-upstream/main → Remote ref only (not a local branch)
-                Used for creating upstream PRs
+upstream/main → Remote ref only (for upstream PRs)
 ```
-
-## Making Changes in Submodules
-
-1. **Work in the submodule:**
-   ```bash
-   cd zebra  # or zaino, orchard, librustzcash, zcash-devtool
-   git checkout main
-   git checkout -b feature/your-change
-   # ... make changes ...
-   git add <files>
-   git commit -m "Your descriptive message"
-   git push origin feature/your-change
-   ```
-
-2. **Merge to main when ready:**
-   ```bash
-   git checkout main
-   git merge feature/your-change
-   git push origin main
-   ```
-
-3. **Update z3 main repo to point to new commit:**
-   ```bash
-   cd /Users/greg/dev/zcash/z3
-   git add zebra  # or whichever submodule(s) changed
-   git commit -m "Update zebra with feature X"
-   git push
-   ```
 
 ## Contributing Changes Upstream
 
-When you want to submit a PR to the official upstream repository:
+For submitting PRs to official upstream repositories:
 
 ```bash
 cd orchard  # or any submodule
@@ -69,21 +66,14 @@ All submodules must use compatible versions:
 
 These constraints exist because Zebra hasn't updated to newer orchard/sapling versions.
 
-## Key Points
-
-- Submodules track specific commits (not branches)
-- Push submodule changes BEFORE pushing main repo
-- Main repo commit updates the submodule pointer
-- `main` branches should stay z3-compatible
-- Use `pr/*` branches for upstream contributions
-
 ## For AI Agents
 
 When making changes to files in submodules:
 
-1. Check you're on `main` or a feature branch (not upstream tracking)
-2. After editing files in a submodule, commit in that submodule directory
-3. Return to main repo root and commit the submodule pointer update
-4. Both commits require `required_permissions: ['git_write']`
-5. Follow commit message guidelines from commit_guidelines.mdc
-6. Never commit directly to a branch that tracks upstream
+1. Use `./dev git branch <name>` to start a feature
+2. Edit files in submodule directories
+3. Use `./dev git commit "message"` to commit everywhere
+4. Use `./dev git push` to push all repos
+5. Both submodule and main repo commits require `required_permissions: ['git_write']`
+6. Follow commit message guidelines from commit_guidelines.mdc
+7. Never use raw `git` commands for routine operations
