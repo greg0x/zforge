@@ -64,29 +64,42 @@ cmd_setup() {
     echo -e "${BLUE}🔧 Zforge Development Setup${NC}"
     echo ""
     
-    # Check required tools
-    echo "Checking required tools..."
+    # Check system dependencies (can't be installed via mise)
+    echo "Checking system dependencies..."
     local missing=0
     
     check_tool "git" "Install git" || missing=1
     check_tool "cargo" "Install Rust: https://rustup.rs" || missing=1
-    check_tool "tmux" "brew install tmux (required by overmind)" || missing=1
-    check_tool "protoc" "mise install (or brew install protobuf)" || missing=1
-    check_tool "overmind" "mise install (or brew install overmind)" || missing=1
-    
-    # Optional but recommended
-    echo ""
-    echo "Checking optional tools..."
-    check_tool "mise" "https://mise.jdx.dev (recommended for tool management)" || true
-    check_tool "gh" "mise install (for ./dev fork)" || true
-    check_tool "jq" "mise install (for JSON parsing)" || true
-    check_tool "grpcurl" "mise install (for gRPC testing)" || true
-    check_tool "docker" "https://docker.com (for CI/deployment)" || true
+    check_tool "tmux" "brew install tmux" || missing=1
     
     if [ $missing -eq 1 ]; then
         echo ""
-        echo -e "${RED}Missing required tools. Install them and re-run ./dev setup${NC}"
+        echo -e "${RED}Missing system dependencies. Install them and re-run ./dev setup${NC}"
         exit 1
+    fi
+    
+    echo ""
+    
+    # Install tools via mise if available
+    if command -v mise &> /dev/null; then
+        echo "Installing tools via mise..."
+        mise install
+        echo -e "  ${GREEN}✓${NC} Tools installed (protoc, overmind, gh, jq, grpcurl)"
+    else
+        echo "Checking tools (install mise for automatic management)..."
+        local tools_missing=0
+        check_tool "protoc" "brew install protobuf" || tools_missing=1
+        check_tool "overmind" "brew install overmind" || tools_missing=1
+        check_tool "gh" "brew install gh (for ./dev fork)" || true
+        check_tool "jq" "brew install jq" || true
+        check_tool "grpcurl" "brew install grpcurl" || true
+        
+        if [ $tools_missing -eq 1 ]; then
+            echo ""
+            echo -e "${YELLOW}Tip: Install mise (https://mise.jdx.dev) to manage all tools automatically${NC}"
+            echo -e "${RED}Missing required tools.${NC}"
+            exit 1
+        fi
     fi
     
     echo ""
