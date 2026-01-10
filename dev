@@ -135,13 +135,22 @@ cmd_up() {
 
 cmd_stop() {
     echo -e "${BLUE}Stopping services...${NC}"
-    overmind stop || true
+    if [ -S .overmind.sock ]; then
+        overmind quit || true
+        # Wait for overmind to exit
+        for i in {1..10}; do
+            [ ! -S .overmind.sock ] && break
+            sleep 0.5
+        done
+    fi
+    rm -f .overmind.sock
     echo -e "${GREEN}Services stopped.${NC}"
 }
 
 cmd_restart() {
     echo -e "${BLUE}Restarting services...${NC}"
     overmind stop || true
+    rm -f .overmind.sock
     sleep 2
     overmind start -D
     echo -e "${GREEN}Services restarted.${NC}"
@@ -406,6 +415,9 @@ get_upstream() {
 cmd_fork() {
     echo -e "${BLUE}🍴 Zforge Fork Setup${NC}"
     echo ""
+    echo "This will fork all Zforge repositories to your GitHub account"
+    echo "and configure git remotes so you can push to your forks."
+    echo ""
     
     # Check gh CLI
     if ! command -v gh &> /dev/null; then
@@ -425,6 +437,24 @@ cmd_fork() {
     local github_user
     github_user=$(gh api user -q .login)
     echo -e "GitHub user: ${GREEN}$github_user${NC}"
+    echo ""
+    
+    # Fork zforge main repo first
+    echo -e "${BLUE}zforge${NC} (main repo, upstream: greg-nagy/zforge)"
+    if gh repo view "$github_user/zforge" &>/dev/null; then
+        echo -e "  ${GREEN}✓${NC} Fork exists"
+    else
+        echo -e "  Forking greg-nagy/zforge..."
+        gh repo fork "greg-nagy/zforge" --clone=false
+        echo -e "  ${GREEN}✓${NC} Forked"
+    fi
+    # Update origin to user's fork, add upstream
+    git remote set-url origin "https://github.com/$github_user/zforge.git" 2>/dev/null || \
+        git remote add origin "https://github.com/$github_user/zforge.git"
+    if ! git remote get-url upstream &>/dev/null; then
+        git remote add upstream "https://github.com/greg-nagy/zforge.git"
+    fi
+    echo -e "  ${GREEN}✓${NC} Remotes configured"
     echo ""
     
     # Fork each submodule
@@ -455,15 +485,19 @@ cmd_fork() {
                 (cd "$sub" && git remote add upstream "https://github.com/$upstream.git")
             fi
             echo -e "  ${GREEN}✓${NC} Remotes configured"
+        else
+            echo -e "  ${YELLOW}⚠${NC} Directory not found (run ./dev setup after forking)"
         fi
         echo ""
     done
     
-    # Update main repo remote
-    echo -e "${BLUE}zforge${NC} (main repo)"
-    git remote set-url origin "https://github.com/$github_user/zforge.git" 2>/dev/null || \
-        git remote add origin "https://github.com/$github_user/zforge.git"
-    echo -e "  ${GREEN}✓${NC} Origin set to your fork"
+    # Update .gitmodules to point to user's forks
+    echo -e "${BLUE}Updating .gitmodules...${NC}"
+    if [ -f ".gitmodules" ]; then
+        sed -i.bak "s|github.com/greg-nagy/|github.com/$github_user/|g" .gitmodules
+        rm -f .gitmodules.bak
+        echo -e "  ${GREEN}✓${NC} .gitmodules updated to use your forks"
+    fi
     echo ""
     
     echo -e "${GREEN}✅ Fork setup complete!${NC}"
@@ -475,9 +509,13 @@ cmd_fork() {
     done
     echo ""
     echo "Next steps:"
-    echo "  ./dev setup    # Initialize submodules"
+    echo "  ./dev setup    # Initialize submodules with your forks"
     echo "  ./dev build    # Build zcash-devtool"
     echo "  ./dev up       # Start services"
+    echo ""
+    echo "Push your initial setup:"
+    echo "  git add .gitmodules && git commit -m 'Configure forks for $github_user'"
+    echo "  ./dev git push"
 }
 
 # Main

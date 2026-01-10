@@ -4,31 +4,52 @@ Development environment for Zcash protocol changes. Combines Zebra (node), Zaino
 
 **Current Goal:** Add native tag field to Orchard actions for PIR-based transaction detection.
 
-## Quick Start
+## Getting Started
+
+### New Contributor (Recommended)
+
+Create your own forks of all repositories so you can push changes:
 
 ```bash
-# Clone with submodules
+# 1. Clone the template repo
 git clone --recursive https://github.com/greg-nagy/zforge.git
 cd zforge
 
-# Setup (checks tools, inits submodules)
+# 2. Fork all repos to your GitHub account (requires gh CLI)
+./dev fork
+
+# 3. Initialize submodules with your forks
 ./dev setup
 
-# Build zcash-devtool (one time)
+# 4. Build and run
 ./dev build
-
-# Start the stack (Regtest mode)
 ./dev up
-
-# Verify everything works
 ./dev test
+```
+
+The `./dev fork` command will:
+- Fork zforge and all 5 submodules to your GitHub account
+- Configure `origin` → your fork, `upstream` → official repos
+- Update `.gitmodules` to use your forks
+
+### Quick Start (Read-Only)
+
+If you just want to explore without pushing changes:
+
+```bash
+git clone --recursive https://github.com/greg-nagy/zforge.git
+cd zforge
+./dev setup && ./dev build && ./dev up
 ```
 
 ## Development Commands
 
 ```bash
+# Onboarding
+./dev fork      # Fork all repos to your GitHub account
+./dev setup     # Initialize submodules, configure remotes
+
 # Services
-./dev setup     # First-time setup (checks tools, inits submodules)
 ./dev up        # Start all services (zebra + zaino)
 ./dev stop      # Stop all services
 ./dev restart   # Restart services
@@ -44,7 +65,7 @@ cd zforge
 ./dev git status          # Status across all repos
 ./dev git branch <name>   # Create feature branch
 ./dev git commit <msg>    # Commit across submodules
-./dev git push            # Push all repos
+./dev git push            # Push all repos (to your forks)
 ./dev git sync            # Fetch upstream, show drift
 ```
 
@@ -157,12 +178,26 @@ zforge/
 
 **Default: Regtest mode** - No sync, instant blocks, isolated network.
 
+## Fork & Remote Structure
+
+After running `./dev fork`, each repo has two remotes:
+
+| Remote | Points To | Purpose |
+|--------|-----------|---------|
+| `origin` | Your fork | Push your changes here |
+| `upstream` | Official repo | Sync upstream changes |
+
+**Submodule upstreams:**
+- `zebra` → ZcashFoundation/zebra
+- `zaino` → zingolabs/zaino  
+- `orchard` → zcash/orchard
+- `librustzcash` → zcash/librustzcash
+- `zcash-devtool` → zcash/zcash-devtool
+
 ## Branch Workflow
 
-**Main repo:** `main` is the primary development branch.
-
-**Submodules:** 
-- `main` - Zforge development (pinned to compatible versions)
+**Branches:**
+- `main` / `dev` - Zforge development (pinned to compatible versions)
 - `feature/*` - Your feature branches
 - `pr/*` - For upstream contributions (branch from `upstream/main`)
 
@@ -176,7 +211,7 @@ zforge/
 # Work, then commit across all dirty repos
 ./dev git commit "My changes"
 
-# Push everything
+# Push everything (goes to your forks)
 ./dev git push
 
 # Check upstream drift
@@ -208,14 +243,20 @@ Uses `config/*-docker.toml` with container-appropriate paths.
 
 ## Prerequisites
 
-Run `./dev setup` to check all prerequisites. Required tools:
+Run `./dev setup` to check all prerequisites.
 
+**Required:**
 - **Rust:** Managed per-submodule via `rust-toolchain.toml` (rustup handles automatically)
+- **tmux:** `brew install tmux` (required by overmind)
 - **overmind:** `brew install overmind` (process manager)
 - **protobuf:** `brew install protobuf` (for gRPC compilation)
 
-Optional:
-- **mise:** `https://mise.jdx.dev` (pins protobuf version via `mise.toml`)
+**Required for `./dev fork`:**
+- **gh:** `brew install gh` (GitHub CLI for forking repos)
+- Run `gh auth login` to authenticate
+
+**Optional:**
+- **mise:** `https://mise.jdx.dev` (manages tool versions via `mise.toml`)
 
 ## License
 
