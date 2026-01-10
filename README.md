@@ -27,15 +27,25 @@ cd z3
 ## Development Commands
 
 ```bash
+# Services
 ./dev setup     # First-time setup (checks tools, inits submodules)
 ./dev up        # Start all services (zebra + zaino)
 ./dev stop      # Stop all services
 ./dev restart   # Restart services
-./dev test      # Run integration tests
-./dev build     # Build zcash-devtool
 ./dev status    # Show service status
 ./dev logs      # Follow all logs
 ./dev logs zaino  # Follow specific service
+
+# Development
+./dev build     # Build zcash-devtool
+./dev test      # Run integration tests
+
+# Git (multi-repo)
+./dev git status          # Status across all repos
+./dev git branch <name>   # Create feature branch
+./dev git commit <msg>    # Commit across submodules
+./dev git push            # Push all repos
+./dev git sync            # Fetch upstream, show drift
 ```
 
 ## What the Tests Verify
@@ -50,22 +60,23 @@ cd z3
 ### Making Protocol Changes
 
 ```bash
-# 1. Start services
-overmind start
+# 1. Start feature branch
+./dev git branch add-tag-field    # Creates feature/add-tag-field in orchard + librustzcash
 
-# 2. Edit orchard (e.g., add tag field to Action struct)
+# 2. Start services
+./dev up
+
+# 3. Make changes
 cd orchard
-git checkout -b feature/add-tag-field
 # ... edit src/action.rs ...
 
-# 3. Rebuild and test
-overmind restart zaino  # Picks up orchard changes
-./tests/integration_test.sh
+# 4. Rebuild and test
+./dev restart                     # Picks up orchard changes
+./dev test
 
-# 4. Commit
-git add -A && git commit -m "Add tag field to Action struct"
-cd ..
-git add orchard && git commit -m "Update orchard with tag field"
+# 5. Commit and push
+./dev git commit "Add tag field to Action struct"
+./dev git push
 ```
 
 ### Service Commands
@@ -156,18 +167,20 @@ z3/
 - `pr/*` - For upstream contributions (branch from `upstream/main`)
 
 ```bash
-# Feature work
-cd orchard
-git checkout -b feature/my-change
-# ... work ...
-git commit && git push origin feature/my-change
+# Start feature (creates branch in orchard + librustzcash by default)
+./dev git branch my-feature
 
-# Merge when ready
-git checkout main && git merge feature/my-change
-git push origin main
+# Or specify repos
+./dev git branch my-feature orchard zebra zaino
 
-# Update z3
-cd .. && git add orchard && git commit -m "Update orchard"
+# Work, then commit across all dirty repos
+./dev git commit "My changes"
+
+# Push everything
+./dev git push
+
+# Check upstream drift
+./dev git sync
 ```
 
 ## Version Compatibility
