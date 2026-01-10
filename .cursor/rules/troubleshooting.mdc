@@ -1,0 +1,82 @@
+---
+description: Common issues and fixes
+globs: []
+alwaysApply: false
+---
+
+# Troubleshooting
+
+## Zaino Can't Connect to Zebra
+
+```
+ERROR zaino_fetch: Could not establish connection with node
+```
+
+**Cause:** Zebra needs ~30 seconds to initialize and start mining.
+
+**Fix:**
+```bash
+./dev status   # Check if Zebra is responding
+./dev restart  # If stuck, restart both
+```
+
+## Cargo Build Version Mismatch
+
+```
+error: failed to select a version for `orchard`
+```
+
+**Cause:** Submodules have strict version constraints (orchard 0.11.x, sapling-crypto 0.5.x).
+
+**Fix:**
+```bash
+./scripts/setup-fork-branches.sh  # Reset to compatible versions
+```
+
+## GPG Signing Fails
+
+```
+gpg: can't connect to the gpg-agent
+fatal: failed to write commit object
+```
+
+**Cause:** Sandbox blocks GPG agent access.
+
+**Fix:** Use `required_permissions: ['all']` for git commits:
+```bash
+# In terminal commands, request 'all' permissions
+```
+
+## Service Won't Start (Port in Use)
+
+**Cause:** Previous instance didn't shut down cleanly.
+
+**Fix:**
+```bash
+./dev stop
+pkill -f zebrad
+pkill -f zainod
+./dev up
+```
+
+## Submodule Detached HEAD
+
+```
+HEAD detached at abc1234
+```
+
+**Cause:** Submodule checked out a specific commit, not a branch.
+
+**Fix:**
+```bash
+cd <submodule>
+git checkout main
+```
+
+## Integration Test Fails
+
+**Check order:**
+1. `./dev status` - Are services running?
+2. `./dev logs zebra` - Any errors?
+3. `./dev logs zaino` - Connection issues?
+4. `./dev restart` - Fresh start

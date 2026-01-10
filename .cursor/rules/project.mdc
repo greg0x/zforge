@@ -1,0 +1,43 @@
+---
+description: Z3 project context and current goals
+globs: []
+alwaysApply: true
+---
+
+# Z3 Project Context
+
+**What:** Zcash protocol development stack combining node, indexer, and wallet CLI with local protocol forks.
+
+**Current Goal:** Add 16-byte tag field to Orchard actions for PIR-based transaction detection. Enables mobile wallets to filter relevant transactions without trial decryption, reducing bandwidth and battery usage.
+
+## Stack
+
+```
+Zebra (node) → Zaino (indexer) → zcash-devtool (wallet CLI)
+     ↑              ↑                    ↑
+     └──────────────┴────────────────────┘
+              orchard + librustzcash (local forks)
+```
+
+## Key Paths for Protocol Changes
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| Tag field | `orchard/src/action.rs` | Add field to Action struct |
+| Serialization | `orchard/src/action.rs` | Update read/write |
+| Tx builder | `librustzcash/zcash_primitives/` | Transaction construction |
+| Node parsing | `zebra/zebra-chain/src/orchard/` | Action deserialization |
+| Indexing | `zaino/zaino-state/src/` | Tag extraction/storage |
+
+## Network
+
+**Always Regtest** - Instant blocks, no sync, isolated network. Never change to Mainnet/Testnet for protocol work.
+
+## Commands
+
+```bash
+./dev up              # Start services
+./dev git branch X    # Start feature
+./dev git commit "Y"  # Commit everywhere
+./dev test            # Verify changes
+```
