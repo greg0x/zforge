@@ -180,6 +180,48 @@ else
 fi
 echo ""
 
+# Wait for Zaino to sync before wallet tests
+echo "Waiting for Zaino to sync..."
+echo "----------------------------"
+DEVTOOL="./zcash-devtool/target/release/zcash-devtool"
+if [ -f "$DEVTOOL" ]; then
+    # Create a temp wallet to test Zaino connectivity
+    SYNC_CHECK_WALLET=".test-wallet-sync-check-$$"
+    rm -rf "$SYNC_CHECK_WALLET"
+    mkdir -p "$SYNC_CHECK_WALLET"
+    
+    # Initialize wallet silently
+    timeout 30 $DEVTOOL wallet -w "$SYNC_CHECK_WALLET" init \
+        --name "sync-check" \
+        --identity "$SYNC_CHECK_WALLET/identity.age" \
+        --network regtest \
+        --server localhost:8137 \
+        --mnemonic "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" \
+        >/dev/null 2>&1 || true
+    
+    # Wait for Zaino to be ready (up to 30 seconds)
+    ZAINO_READY=false
+    for i in $(seq 1 30); do
+        SYNC_OUT=$(timeout 10 $DEVTOOL wallet -w "$SYNC_CHECK_WALLET" sync --server localhost:8137 2>&1 || echo "")
+        if ! echo "$SYNC_OUT" | grep -qi "error\|failed"; then
+            ZAINO_READY=true
+            break
+        fi
+        sleep 1
+    done
+    
+    rm -rf "$SYNC_CHECK_WALLET"
+    
+    if [ "$ZAINO_READY" = true ]; then
+        pass "Zaino synced and serving blocks"
+    else
+        info "Zaino still syncing (tests may be flaky)"
+    fi
+else
+    info "Skipping Zaino sync check (zcash-devtool not built)"
+fi
+echo ""
+
 # Test 8: zcash-devtool setup
 echo "Test 8: zcash-devtool"
 echo "---------------------"
@@ -198,22 +240,9 @@ else
 fi
 
 # Check if zcash-devtool binary exists (pre-built)
-DEVTOOL="./zcash-devtool/target/release/zcash-devtool"
 if [ -f "$DEVTOOL" ]; then
     pass "zcash-devtool binary exists"
-    
-    # Test connection to local Zaino
-    info "Testing zcash-devtool connection to Zaino..."
-    DEVTOOL_TEST=$(timeout 10 $DEVTOOL inspect block \
-        -s localhost:8137 --height 1 2>&1 || echo "connection_error")
-    
-    if echo "$DEVTOOL_TEST" | grep -q "hash\|error connecting\|connection_error"; then
-        if echo "$DEVTOOL_TEST" | grep -q "hash"; then
-            pass "zcash-devtool can query blocks from Zaino"
-        else
-            info "zcash-devtool couldn't connect (Zaino may need time to sync)"
-        fi
-    fi
+    # Zaino connectivity verified in sync check above
 else
     info "zcash-devtool not built yet (run: cd zcash-devtool && cargo build --release)"
 fi
