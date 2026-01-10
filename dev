@@ -19,22 +19,30 @@ print_help() {
     echo ""
     echo "Usage: ./dev <command>"
     echo ""
-    echo "Commands:"
+    echo "Services:"
     echo "  setup     Check tools, init submodules, configure remotes"
     echo "  up        Start all services (zebra + zaino)"
     echo "  stop      Stop all services"
     echo "  restart   Restart all services"
-    echo "  test      Run integration tests"
-    echo "  build     Build zcash-devtool"
     echo "  status    Show service status"
-    echo "  logs      Follow service logs (usage: ./dev logs [service])"
-    echo "  help      Show this help"
+    echo "  logs      Follow service logs"
+    echo ""
+    echo "Development:"
+    echo "  build     Build zcash-devtool"
+    echo "  test      Run integration tests"
+    echo ""
+    echo "Git (multi-repo):"
+    echo "  git status          Status across all repos"
+    echo "  git branch <name>   Create feature branch"
+    echo "  git commit <msg>    Commit across submodules"
+    echo "  git push            Push all repos"
+    echo "  git sync            Fetch upstream, show drift"
     echo ""
     echo "Examples:"
-    echo "  ./dev setup          # First-time setup"
-    echo "  ./dev up             # Start services"
-    echo "  ./dev test           # Run tests"
-    echo "  ./dev logs zaino     # Follow zaino logs"
+    echo "  ./dev setup                          # First-time setup"
+    echo "  ./dev up                             # Start services"
+    echo "  ./dev git branch add-tag-field       # Start feature"
+    echo "  ./dev git commit \"Add tag field\"     # Commit everywhere"
 }
 
 check_tool() {
@@ -185,6 +193,181 @@ cmd_logs() {
     fi
 }
 
+# --- Git Commands ---
+
+SUBMODULES="orchard librustzcash zebra zaino zcash-devtool"
+
+cmd_git_status() {
+    echo -e "${BLUE}z3${NC} (main repo)"
+    git status -sb
+    echo ""
+    
+    for sub in $SUBMODULES; do
+        if [ -d "$sub" ]; then
+            echo -e "${BLUE}$sub${NC}"
+            (cd "$sub" && git status -sb)
+            echo ""
+        fi
+    done
+}
+
+cmd_git_branch() {
+    local name="${1:-}"
+    if [ -z "$name" ]; then
+        echo -e "${RED}Usage: ./dev git branch <name> [repos...]${NC}"
+        echo "Example: ./dev git branch add-tag-field"
+        echo "Example: ./dev git branch add-tag-field orchard librustzcash"
+        exit 1
+    fi
+    shift
+    
+    # Default to protocol repos if none specified
+    local repos="${*:-orchard librustzcash}"
+    
+    for repo in $repos; do
+        if [ -d "$repo" ]; then
+            echo -e "${BLUE}Creating feature/$name in $repo${NC}"
+            (cd "$repo" && git checkout main && git pull origin main && git checkout -b "feature/$name")
+        else
+            echo -e "${YELLOW}Skipping $repo (not found)${NC}"
+        fi
+    done
+    
+    echo ""
+    echo -e "${GREEN}✅ Feature branches created${NC}"
+    echo "Next: make changes, then ./dev git commit \"your message\""
+}
+
+cmd_git_commit() {
+    local msg="${1:-}"
+    if [ -z "$msg" ]; then
+        echo -e "${RED}Usage: ./dev git commit \"commit message\"${NC}"
+        exit 1
+    fi
+    
+    local committed=""
+    
+    # Commit in each dirty submodule
+    for sub in $SUBMODULES; do
+        if [ -d "$sub" ]; then
+            # Check if there are changes (staged or unstaged)
+            if (cd "$sub" && ! git diff --quiet 2>/dev/null) || (cd "$sub" && ! git diff --cached --quiet 2>/dev/null); then
+                echo -e "${BLUE}Committing in $sub${NC}"
+                (cd "$sub" && git add -A && git commit -m "$msg")
+                committed="$committed $sub"
+            fi
+        fi
+    done
+    
+    # Update main repo with submodule pointers
+    if [ -n "$committed" ]; then
+        echo -e "${BLUE}Updating z3 main repo${NC}"
+        git add $committed
+        git commit -m "$msg"
+        echo ""
+        echo -e "${GREEN}✅ Committed in:$committed + z3${NC}"
+    else
+        echo -e "${YELLOW}No changes to commit in submodules${NC}"
+        
+        # Check if main repo has changes
+        if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+            echo -e "${BLUE}Committing in z3 main repo${NC}"
+            git add -A && git commit -m "$msg"
+            echo -e "${GREEN}✅ Committed in z3${NC}"
+        fi
+    fi
+}
+
+cmd_git_push() {
+    # Push submodules first
+    for sub in $SUBMODULES; do
+        if [ -d "$sub" ]; then
+            local branch
+            branch=$(cd "$sub" && git rev-parse --abbrev-ref HEAD 2>/dev/null)
+            if [ "$branch" != "HEAD" ] && [ -n "$branch" ]; then
+                # Check if there are commits to push
+                local ahead
+                ahead=$(cd "$sub" && git rev-list --count "@{upstream}..HEAD" 2>/dev/null || echo "new")
+                if [ "$ahead" != "0" ]; then
+                    echo -e "${BLUE}Pushing $sub ($branch)${NC}"
+                    (cd "$sub" && git push -u origin "$branch")
+                fi
+            fi
+        fi
+    done
+    
+    # Push main repo
+    local main_ahead
+    main_ahead=$(git rev-list --count "@{upstream}..HEAD" 2>/dev/null || echo "new")
+    if [ "$main_ahead" != "0" ]; then
+        echo -e "${BLUE}Pushing z3 main repo${NC}"
+        git push
+    fi
+    
+    echo -e "${GREEN}✅ Push complete${NC}"
+}
+
+cmd_git_sync() {
+    echo -e "${BLUE}Fetching upstream for all repos...${NC}"
+    echo ""
+    
+    for sub in $SUBMODULES; do
+        if [ -d "$sub" ]; then
+            echo -e "${YELLOW}$sub${NC}"
+            if (cd "$sub" && git remote get-url upstream &>/dev/null); then
+                (cd "$sub" && git fetch upstream)
+                local behind
+                behind=$(cd "$sub" && git rev-list --count HEAD..upstream/main 2>/dev/null || echo "?")
+                local ahead
+                ahead=$(cd "$sub" && git rev-list --count upstream/main..HEAD 2>/dev/null || echo "?")
+                echo -e "  upstream/main: ${GREEN}+$ahead${NC} / ${RED}-$behind${NC} commits"
+            else
+                echo -e "  ${YELLOW}(no upstream remote)${NC}"
+            fi
+            echo ""
+        fi
+    done
+}
+
+cmd_git() {
+    local subcmd="${1:-}"
+    shift || true
+    
+    case "$subcmd" in
+        status|st)
+            cmd_git_status "$@"
+            ;;
+        branch|br)
+            cmd_git_branch "$@"
+            ;;
+        commit|ci)
+            cmd_git_commit "$@"
+            ;;
+        push)
+            cmd_git_push "$@"
+            ;;
+        sync)
+            cmd_git_sync "$@"
+            ;;
+        *)
+            echo "Usage: ./dev git <command>"
+            echo ""
+            echo "Commands:"
+            echo "  status          Show status across all repos"
+            echo "  branch <name>   Create feature branch (default: orchard librustzcash)"
+            echo "  commit <msg>    Commit across dirty submodules + update main"
+            echo "  push            Push all repos"
+            echo "  sync            Fetch upstream, show ahead/behind"
+            echo ""
+            echo "Examples:"
+            echo "  ./dev git status"
+            echo "  ./dev git branch add-tag-field"
+            echo "  ./dev git commit \"Add tag field to Action\""
+            echo "  ./dev git push"
+            ;;
+    esac
+}
+
 # Main
 case "${1:-help}" in
     setup)
@@ -210,6 +393,10 @@ case "${1:-help}" in
         ;;
     logs)
         cmd_logs "${2:-}"
+        ;;
+    git)
+        shift
+        cmd_git "$@"
         ;;
     help|--help|-h)
         print_help
