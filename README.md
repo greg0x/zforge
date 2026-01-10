@@ -11,26 +11,35 @@ Development environment for Zcash protocol changes. Combines Zebra (node), Zaino
 git clone --recursive https://github.com/greg-nagy/z3.git
 cd z3
 
-# Install overmind (process manager)
-brew install overmind  # macOS
-# or: go install github.com/DarthSim/overmind/v2@latest
+# Setup (checks tools, inits submodules)
+./dev setup
 
 # Build zcash-devtool (one time)
-cd zcash-devtool && cargo build --release && cd ..
+./dev build
 
 # Start the stack (Regtest mode)
-overmind start
+./dev up
+
+# Verify everything works
+./dev test
 ```
 
-Unified, color-coded logs from Zebra and Zaino. Press `Ctrl+C` to stop.
-
-## Verify Setup
+## Development Commands
 
 ```bash
-./tests/integration_test.sh
+./dev setup     # First-time setup (checks tools, inits submodules)
+./dev up        # Start all services (zebra + zaino)
+./dev stop      # Stop all services
+./dev restart   # Restart services
+./dev test      # Run integration tests
+./dev build     # Build zcash-devtool
+./dev status    # Show service status
+./dev logs      # Follow all logs
+./dev logs zaino  # Follow specific service
 ```
 
-This verifies:
+## What the Tests Verify
+
 - Services running (Zebra mining, Zaino indexing)
 - Local patches active (orchard, librustzcash)
 - Wallet initialization on Regtest
@@ -62,10 +71,15 @@ git add orchard && git commit -m "Update orchard with tag field"
 ### Service Commands
 
 ```bash
-overmind start              # Start all services
-overmind restart zaino      # Restart one service
-overmind stop               # Stop all
-overmind echo zebra         # Follow one service's logs
+# Via ./dev (recommended)
+./dev up                    # Start all services
+./dev restart               # Restart all
+./dev stop                  # Stop all
+./dev logs zaino            # Follow one service's logs
+
+# Direct overmind (if needed)
+overmind restart zaino      # Restart specific service
+overmind echo zebra         # Follow specific service
 ```
 
 ### Manual Execution
@@ -107,16 +121,19 @@ $DEVTOOL wallet -w .wallet balance
 
 ```
 z3/
-├── zebra/          Full node (submodule)
-├── zaino/          Indexer (submodule)  
-├── zcash-devtool/  Wallet CLI (submodule)
-├── orchard/        Orchard protocol (submodule) ← tag field goes here
-├── librustzcash/   Zcash primitives (submodule)
-├── config/         Service configs (regtest, docker)
-├── scripts/        Setup scripts
-├── tests/          Integration tests
-├── Procfile        overmind process definitions
-└── docker-compose.yml  Docker deployment (CI/staging)
+├── dev                 # CLI entry point (./dev setup, ./dev up, etc.)
+├── mise.toml           # Tool versions (protobuf)
+├── Procfile            # overmind process definitions
+├── zebra/              # Full node (submodule)
+├── zaino/              # Indexer (submodule)  
+├── zcash-devtool/      # Wallet CLI (submodule)
+├── orchard/            # Orchard protocol (submodule) ← tag field goes here
+├── librustzcash/       # Zcash primitives (submodule)
+├── config/             # Service configs (regtest, docker)
+├── scripts/            # Setup scripts
+├── tests/              # Integration tests
+├── docs/               # Planning docs
+└── docker-compose.yml  # Docker deployment (CI/staging)
 ```
 
 ## Configuration
@@ -178,9 +195,14 @@ Uses `config/*-docker.toml` with container-appropriate paths.
 
 ## Prerequisites
 
-- **Rust:** 1.86+ (check zebra/rust-toolchain.toml)
-- **overmind:** `brew install overmind`
+Run `./dev setup` to check all prerequisites. Required tools:
+
+- **Rust:** Managed per-submodule via `rust-toolchain.toml` (rustup handles automatically)
+- **overmind:** `brew install overmind` (process manager)
 - **protobuf:** `brew install protobuf` (for gRPC compilation)
+
+Optional:
+- **mise:** `https://mise.jdx.dev` (pins protobuf version via `mise.toml`)
 
 ## License
 

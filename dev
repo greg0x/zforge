@@ -1,0 +1,223 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Z3 Development CLI
+# Single entry point for common development tasks
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+print_help() {
+    echo "Z3 Development CLI"
+    echo ""
+    echo "Usage: ./dev <command>"
+    echo ""
+    echo "Commands:"
+    echo "  setup     Check tools, init submodules, configure remotes"
+    echo "  up        Start all services (zebra + zaino)"
+    echo "  stop      Stop all services"
+    echo "  restart   Restart all services"
+    echo "  test      Run integration tests"
+    echo "  build     Build zcash-devtool"
+    echo "  status    Show service status"
+    echo "  logs      Follow service logs (usage: ./dev logs [service])"
+    echo "  help      Show this help"
+    echo ""
+    echo "Examples:"
+    echo "  ./dev setup          # First-time setup"
+    echo "  ./dev up             # Start services"
+    echo "  ./dev test           # Run tests"
+    echo "  ./dev logs zaino     # Follow zaino logs"
+}
+
+check_tool() {
+    local tool=$1
+    local install_hint=$2
+    if command -v "$tool" &> /dev/null; then
+        echo -e "  ${GREEN}✓${NC} $tool"
+        return 0
+    else
+        echo -e "  ${RED}✗${NC} $tool - $install_hint"
+        return 1
+    fi
+}
+
+cmd_setup() {
+    echo -e "${BLUE}🔧 Z3 Development Setup${NC}"
+    echo ""
+    
+    # Check required tools
+    echo "Checking required tools..."
+    local missing=0
+    
+    check_tool "git" "Install git" || missing=1
+    check_tool "cargo" "Install Rust: https://rustup.rs" || missing=1
+    check_tool "protoc" "brew install protobuf (or mise install)" || missing=1
+    check_tool "overmind" "brew install overmind" || missing=1
+    
+    # Optional but recommended
+    echo ""
+    echo "Checking optional tools..."
+    check_tool "mise" "https://mise.jdx.dev (recommended for tool management)" || true
+    
+    if [ $missing -eq 1 ]; then
+        echo ""
+        echo -e "${RED}Missing required tools. Install them and re-run ./dev setup${NC}"
+        exit 1
+    fi
+    
+    echo ""
+    
+    # Run existing setup script
+    if [ -f "scripts/setup-dev-env.sh" ]; then
+        echo -e "${BLUE}Running submodule setup...${NC}"
+        bash scripts/setup-dev-env.sh
+    else
+        echo -e "${YELLOW}Warning: scripts/setup-dev-env.sh not found${NC}"
+        echo "Initializing submodules manually..."
+        git submodule update --init --recursive
+    fi
+    
+    echo ""
+    echo -e "${GREEN}✅ Setup complete!${NC}"
+    echo ""
+    echo "Next steps:"
+    echo "  1. ./dev build       # Build zcash-devtool (one time)"
+    echo "  2. ./dev up          # Start services"
+    echo "  3. ./dev test        # Verify everything works"
+}
+
+cmd_up() {
+    echo -e "${BLUE}Starting services...${NC}"
+    if ! command -v overmind &> /dev/null; then
+        echo -e "${RED}Error: overmind not found. Install with: brew install overmind${NC}"
+        exit 1
+    fi
+    overmind start -D
+    echo -e "${GREEN}Services started. Use './dev logs' to follow output.${NC}"
+}
+
+cmd_stop() {
+    echo -e "${BLUE}Stopping services...${NC}"
+    overmind stop || true
+    echo -e "${GREEN}Services stopped.${NC}"
+}
+
+cmd_restart() {
+    echo -e "${BLUE}Restarting services...${NC}"
+    overmind stop || true
+    sleep 2
+    overmind start -D
+    echo -e "${GREEN}Services restarted.${NC}"
+}
+
+cmd_test() {
+    echo -e "${BLUE}Running integration tests...${NC}"
+    if [ -f "tests/integration_test.sh" ]; then
+        bash tests/integration_test.sh
+    else
+        echo -e "${RED}Error: tests/integration_test.sh not found${NC}"
+        exit 1
+    fi
+}
+
+cmd_build() {
+    echo -e "${BLUE}Building zcash-devtool...${NC}"
+    if [ -d "zcash-devtool" ]; then
+        cd zcash-devtool
+        cargo build --release
+        cd ..
+        echo -e "${GREEN}✅ zcash-devtool built: ./zcash-devtool/target/release/zcash-devtool${NC}"
+    else
+        echo -e "${RED}Error: zcash-devtool directory not found${NC}"
+        exit 1
+    fi
+}
+
+cmd_status() {
+    echo -e "${BLUE}Service Status${NC}"
+    echo ""
+    
+    # Check overmind
+    if pgrep -f "overmind" > /dev/null 2>&1; then
+        echo -e "Overmind: ${GREEN}running${NC}"
+        overmind echo 2>/dev/null || true
+    else
+        echo -e "Overmind: ${YELLOW}not running${NC}"
+    fi
+    
+    echo ""
+    
+    # Check endpoints
+    echo "Endpoints:"
+    if curl -sf http://localhost:8080/ready > /dev/null 2>&1; then
+        echo -e "  Zebra health:  ${GREEN}http://localhost:8080${NC}"
+    else
+        echo -e "  Zebra health:  ${RED}not responding${NC}"
+    fi
+    
+    if nc -z localhost 8137 2>/dev/null; then
+        echo -e "  Zaino gRPC:    ${GREEN}localhost:8137${NC}"
+    else
+        echo -e "  Zaino gRPC:    ${RED}not responding${NC}"
+    fi
+    
+    if curl -sf http://localhost:18232 > /dev/null 2>&1; then
+        echo -e "  Zebra RPC:     ${GREEN}localhost:18232${NC}"
+    else
+        echo -e "  Zebra RPC:     ${RED}not responding${NC}"
+    fi
+}
+
+cmd_logs() {
+    local service="${1:-}"
+    if [ -n "$service" ]; then
+        overmind echo "$service"
+    else
+        overmind echo
+    fi
+}
+
+# Main
+case "${1:-help}" in
+    setup)
+        cmd_setup
+        ;;
+    up|start)
+        cmd_up
+        ;;
+    stop)
+        cmd_stop
+        ;;
+    restart)
+        cmd_restart
+        ;;
+    test)
+        cmd_test
+        ;;
+    build)
+        cmd_build
+        ;;
+    status)
+        cmd_status
+        ;;
+    logs)
+        cmd_logs "${2:-}"
+        ;;
+    help|--help|-h)
+        print_help
+        ;;
+    *)
+        echo -e "${RED}Unknown command: $1${NC}"
+        echo ""
+        print_help
+        exit 1
+        ;;
+esac

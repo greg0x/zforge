@@ -1,0 +1,21 @@
+# Z3 Development Tools
+# 
+# Rust versions are managed by rust-toolchain.toml in each submodule.
+# This file pins external tools only.
+#
+# Usage:
+#   mise install    # Install pinned versions
+#   mise trust      # Trust this config (first time only)
+
+[tools]
+# Protocol buffer compiler (for gRPC)
+protobuf = "29"
+
+# Process manager for running services
+# Note: mise doesn't have overmind, install via:
+#   brew install overmind (macOS)
+#   go install github.com/DarthSim/overmind/v2@latest
+
+[env]
+# Ensure cargo uses the workspace target directory for shared builds
+# (Each submodule still gets its own due to different rust-toolchain.toml)
