@@ -1,4 +1,4 @@
-# Z3 - Zcash Protocol Development Stack
+# Zforge - Zcash Protocol Development Stack
 
 Development environment for Zcash protocol changes. Combines Zebra (node), Zaino (indexer), zcash-devtool (wallet/CLI), and local forks of orchard and librustzcash.
 
@@ -8,8 +8,8 @@ Development environment for Zcash protocol changes. Combines Zebra (node), Zaino
 
 ```bash
 # Clone with submodules
-git clone --recursive https://github.com/greg-nagy/z3.git
-cd z3
+git clone --recursive https://github.com/greg-nagy/zforge.git
+cd zforge
 
 # Setup (checks tools, inits submodules)
 ./dev setup
@@ -131,7 +131,7 @@ $DEVTOOL wallet -w .wallet balance
 ## Repository Structure
 
 ```
-z3/
+zforge/
 ├── dev                 # CLI entry point (./dev setup, ./dev up, etc.)
 ├── mise.toml           # Tool versions (protobuf)
 ├── Procfile            # overmind process definitions
@@ -162,7 +162,7 @@ z3/
 **Main repo:** `main` is the primary development branch.
 
 **Submodules:** 
-- `main` - Z3 development (pinned to compatible versions)
+- `main` - Zforge development (pinned to compatible versions)
 - `feature/*` - Your feature branches
 - `pr/*` - For upstream contributions (branch from `upstream/main`)
 

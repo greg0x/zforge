@@ -1,5 +1,5 @@
 ---
-description: Git workflow for z3 and submodules
+description: Git workflow for zforge and submodules
 globs: ["zebra/**", "zaino/**", "orchard/**", "librustzcash/**", "zcash-devtool/**"]
 alwaysApply: true
 ---
@@ -22,7 +22,7 @@ alwaysApply: true
 
 | Branch | Purpose |
 |--------|---------|
-| `main` | Z3 development (default, pinned versions) |
+| `main` | Zforge development (default, pinned versions) |
 | `feature/*` | Feature branches (from main) |
 | `pr/*` | Upstream PRs (from upstream/main) |
 

@@ -11,7 +11,7 @@
 ## Target Stack
 
 ```
-z3/
+zforge/
 ├── ─── CORE (Phase 1) ───────────────────────────
 │   ├── zebra/              # Full node
 │   ├── zaino/              # Indexer (Zingolabs)
@@ -79,7 +79,7 @@ All wallets query Zaino via lightwalletd gRPC protocol (service.proto)
 
 ### Step 1: Add Mobile FFI Layer
 ```bash
-cd z3
+cd zforge
 mkdir -p mobile
 git submodule add https://github.com/Electric-Coin-Company/zcash-light-client-ffi mobile/zcash-light-client-ffi
 ```
@@ -138,7 +138,7 @@ git submodule add https://github.com/zingolabs/zingo-pc desktop/zingo-pc
 Goal: Verify protocol changes flow through to SDK layer
 
 ```
-z3/
+zforge/
 ├── (core submodules)
 └── mobile/
     ├── zcash-light-client-ffi/
@@ -152,7 +152,7 @@ Test: Build SDK, run SDK tests against local Zaino
 Goal: Full mobile E2E on Regtest
 
 ```
-z3/mobile/
+zforge/mobile/
 ├── (SDKs)
 ├── zashi-ios/
 └── zashi-android/
@@ -164,7 +164,7 @@ Test: Run Zashi on simulator → connect to local Zaino → sync wallet
 Goal: Complete platform coverage
 
 ```
-z3/desktop/
+zforge/desktop/
 └── zingo-pc/
 ```
 
@@ -193,7 +193,7 @@ Mobile SDKs pin librustzcash versions. Need to coordinate:
 
 | SDK | librustzcash version | Notes |
 |-----|---------------------|-------|
-| zcash-light-client-ffi | Check Cargo.toml | Must match z3 fork |
+| zcash-light-client-ffi | Check Cargo.toml | Must match zforge fork |
 | zcash-swift-wallet-sdk | Via FFI | - |
 | zcash-android-wallet-sdk | Has own backend-lib | Check separately |
 

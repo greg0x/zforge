@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "🔧 Setting up Z3 Development Environment..."
+echo "🔧 Setting up Zforge Development Environment..."
 echo ""
 
 # Color output
@@ -57,8 +57,8 @@ echo ""
 echo -e "${GREEN}✅ Development environment setup complete!${NC}"
 echo ""
 echo -e "${YELLOW}📋 Branch Structure:${NC}"
-echo "  • z3 repo:    main (primary development branch)"
-echo "  • Submodules: main (z3 development, pinned to compatible versions)"
+echo "  • zforge repo: main (primary development branch)"
+echo "  • Submodules:  main (zforge development, pinned to compatible versions)"
 echo "  •             feature/* (your feature branches)"
 echo "  •             pr/* (upstream contributions, from upstream/main)"
 echo ""

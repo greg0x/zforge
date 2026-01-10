@@ -1,10 +1,10 @@
 #!/bin/zsh
 set -e
 
-# Setup Fork Branches for Z3 Development
+# Setup Fork Branches for Zforge Development
 # ========================================
 # This script configures all submodule forks to use:
-#   main     → z3-compatible development (DEFAULT)
+#   main     → zforge-compatible development (DEFAULT)
 #   upstream → remote tracking for official repos
 
 cd "$(dirname "$0")/.."
@@ -16,11 +16,11 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 echo "=========================================="
-echo "Z3 Fork Branch Setup"
+echo "Zforge Fork Branch Setup"
 echo "=========================================="
 echo ""
 
-# Target commits for z3 compatibility
+# Target commits for zforge compatibility
 # All versions use orchard 0.11, sapling-crypto 0.5, zcash_client_backend 0.20
 get_target() {
     case "$1" in
@@ -158,7 +158,7 @@ execute_setup() {
     done
     
     echo ""
-    echo "=== Updating z3 Main Repo Submodules ==="
+    echo "=== Updating zforge Main Repo Submodules ==="
     cd "$ROOT"
     
     for repo in orchard librustzcash zebra zaino zcash-devtool; do
@@ -179,7 +179,7 @@ execute_setup() {
     echo "     cd orchard && git push -u origin main --force"
     echo "     cd ../librustzcash && git push -u origin main --force"
     echo "     cd ../zcash-devtool && git push -u origin main --force"
-    echo "  3. Commit z3 repo: git commit -m 'Update submodules to main branches'"
+    echo "  3. Commit zforge repo: git commit -m 'Update submodules to main branches'"
     echo "  4. Test build: cargo build --release -p zainod"
 }
 

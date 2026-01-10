@@ -1,10 +1,10 @@
 ---
-description: Z3 project context and current goals
+description: Zforge project context and current goals
 globs: []
 alwaysApply: true
 ---
 
-# Z3 Project Context
+# Zforge Project Context
 
 **What:** Zcash protocol development stack combining node, indexer, and wallet CLI with local protocol forks.
 

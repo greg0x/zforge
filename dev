@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Z3 Development CLI
+# Zforge Development CLI
 # Single entry point for common development tasks
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,7 +15,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 print_help() {
-    echo "Z3 Development CLI"
+    echo "Zforge Development CLI"
     echo ""
     echo "Usage: ./dev <command>"
     echo ""
@@ -58,7 +58,7 @@ check_tool() {
 }
 
 cmd_setup() {
-    echo -e "${BLUE}🔧 Z3 Development Setup${NC}"
+    echo -e "${BLUE}🔧 Zforge Development Setup${NC}"
     echo ""
     
     # Check required tools
@@ -198,7 +198,7 @@ cmd_logs() {
 SUBMODULES="orchard librustzcash zebra zaino zcash-devtool"
 
 cmd_git_status() {
-    echo -e "${BLUE}z3${NC} (main repo)"
+    echo -e "${BLUE}zforge${NC} (main repo)"
     git status -sb
     echo ""
     
@@ -261,19 +261,19 @@ cmd_git_commit() {
     
     # Update main repo with submodule pointers
     if [ -n "$committed" ]; then
-        echo -e "${BLUE}Updating z3 main repo${NC}"
+        echo -e "${BLUE}Updating zforge main repo${NC}"
         git add $committed
         git commit -m "$msg"
         echo ""
-        echo -e "${GREEN}✅ Committed in:$committed + z3${NC}"
+        echo -e "${GREEN}✅ Committed in:$committed + zforge${NC}"
     else
         echo -e "${YELLOW}No changes to commit in submodules${NC}"
         
         # Check if main repo has changes
         if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
-            echo -e "${BLUE}Committing in z3 main repo${NC}"
+            echo -e "${BLUE}Committing in zforge main repo${NC}"
             git add -A && git commit -m "$msg"
-            echo -e "${GREEN}✅ Committed in z3${NC}"
+            echo -e "${GREEN}✅ Committed in zforge${NC}"
         fi
     fi
 }
@@ -300,7 +300,7 @@ cmd_git_push() {
     local main_ahead
     main_ahead=$(git rev-list --count "@{upstream}..HEAD" 2>/dev/null || echo "new")
     if [ "$main_ahead" != "0" ]; then
-        echo -e "${BLUE}Pushing z3 main repo${NC}"
+        echo -e "${BLUE}Pushing zforge main repo${NC}"
         git push
     fi
     

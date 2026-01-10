@@ -1,6 +1,6 @@
 # Upstream PR Candidates
 
-Changes made during z3 development that should be contributed back to upstream repositories.
+Changes made during zforge development that should be contributed back to upstream repositories.
 
 ## Summary
 
@@ -85,7 +85,7 @@ impl Parameters for NetworkParams {
 **PR Prep:**
 1. This is a significant feature - consider opening an issue first to discuss approach
 2. May want to squash commits for cleaner history
-3. Remove any z3-specific patches from Cargo.toml before PR
+3. Remove any zforge-specific patches from Cargo.toml before PR
 4. Needs testing documentation
 
 **Alternative approaches upstream might prefer:**
@@ -131,14 +131,14 @@ let mnemonic = if let Some(m) = opts.mnemonic {
 
 ## NOT for Upstream
 
-These changes are z3-specific and should not be PRed:
+These changes are zforge-specific and should not be PRed:
 
 ### Zaino
 - `b279b311` - Add zebra-chain to local patches
 - `b1479776` - Add local patches for tag-PIR development
 
 ### zcash-devtool
-- `4863d0d` - Use local submodule paths for z3 development
+- `4863d0d` - Use local submodule paths for zforge development
 
 These modify `Cargo.toml` `[patch.crates-io]` sections to use local paths, which only make sense for our development setup.
 
@@ -153,7 +153,7 @@ cd <submodule>
 git fetch upstream
 git checkout -b pr/<feature-name> upstream/main
 git cherry-pick <commits>
-# Remove any z3-specific Cargo.toml patches
+# Remove any zforge-specific Cargo.toml patches
 git push origin pr/<feature-name>
 # Open PR: greg-nagy/<repo>:pr/<feature-name> → zingolabs/<repo>:main
 ```

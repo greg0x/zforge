@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-# Integration test for Z3 native development stack
+# Integration test for Zforge native development stack
 # Tests Zebra RPC and Zaino gRPC connectivity
 # Verifies the full data flow: Zebra → Zaino → zcash-devtool
 
@@ -23,7 +23,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo "🧪 Z3 Stack Integration Test (Native)"
+echo "🧪 Zforge Stack Integration Test (Native)"
 echo "======================================="
 echo ""
 
