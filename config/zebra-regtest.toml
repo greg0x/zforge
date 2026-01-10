@@ -26,3 +26,7 @@ miner_address = "t27eWDgjFYJGVXmzrXeVjnb5J3uXDM9xH9v"
 
 [tracing]
 filter = "info"
+
+[health]
+# Health endpoints for monitoring (/healthy, /ready)
+listen_addr = "127.0.0.1:8080"
