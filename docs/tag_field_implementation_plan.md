@@ -79,7 +79,7 @@ Vector::write_nonempty(&mut writer, bundle.actions(), |w, a| {
 
 - [x] Update `read_v6_bundle` to use `read_action_without_auth_v6`
 - [x] Update `write_v6_bundle` to use `write_action_without_auth_v6`
-- [x] Verify V5 paths unchanged with `./dev check`
+- [x] Verify V5 builds without NU7 flags
 
 ---
 
@@ -89,12 +89,12 @@ Vector::write_nonempty(&mut writer, bundle.actions(), |w, a| {
 
 ### What was implemented
 
-| File | Change |
-|------|--------|
-| `zebra-chain/src/orchard/action.rs` | Added `tag: [u8; 16]` field (gated with cfg) |
-| `zebra-chain/src/orchard/action.rs` | Added `zcash_serialize_v5/v6` and `zcash_deserialize_v5/v6` methods |
-| `zebra-chain/src/transaction/serialize.rs` | `ShieldedData::zcash_serialize_v5/v6` methods |
-| `zebra-chain/src/transaction/serialize.rs` | V6 transaction uses V6 orchard serialization |
+| File                                       | Change                                                              |
+| ------------------------------------------ | ------------------------------------------------------------------- |
+| `zebra-chain/src/orchard/action.rs`        | Added `tag: [u8; 16]` field (gated with cfg)                        |
+| `zebra-chain/src/orchard/action.rs`        | Added `zcash_serialize_v5/v6` and `zcash_deserialize_v5/v6` methods |
+| `zebra-chain/src/transaction/serialize.rs` | `ShieldedData::zcash_serialize_v5/v6` methods                       |
+| `zebra-chain/src/transaction/serialize.rs` | V6 transaction uses V6 orchard serialization                        |
 
 **Completed:**
 
@@ -220,7 +220,7 @@ fn v6_with_tags_round_trip() {
 - [ ] NU7 activates correctly on regtest
 - [ ] Tag field included in V6 action serialization
 - [ ] Tag field NOT included in V5 action serialization
-- [ ] `./dev check` passes
+- [ ] V5 builds without NU7 flags (`cargo check -p zebra-chain`)
 
 ---
 
