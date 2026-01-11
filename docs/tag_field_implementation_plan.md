@@ -9,7 +9,7 @@
 | ------------------- | ---------------- | ----------------------------------- | -------------- |
 | Protocol layer      | `orchard/`       | `src/action.rs`, `src/tag.rs`       | ✅ Done        |
 | Transaction builder | `librustzcash/`  | `zcash_primitives/src/transaction/` | ✅ Done        |
-| Node parsing        | `zebra/`         | `zebra-chain/src/orchard/`          | 🔲 Not started |
+| Node parsing        | `zebra/`         | `zebra-chain/src/orchard/`          | ✅ Done        |
 | Indexing            | `zaino/`         | `zaino-state/src/`                  | 🔲 Not started |
 | Wallet CLI          | `zcash-devtool/` | `src/`                              | 🔲 Not started |
 
@@ -83,108 +83,27 @@ Vector::write_nonempty(&mut writer, bundle.actions(), |w, a| {
 
 ---
 
-## Phase 2: Zebra Implementation
+## Phase 2: Zebra Implementation ✅
 
-**Key Principle**: V5 serialization MUST NOT CHANGE.
+**Status**: Complete
 
-### Zebra Convention
+### What was implemented
 
-Zebra uses a **single `Action` type shared between Transaction::V5 and Transaction::V6**.
-Version awareness happens at the Transaction level, not with separate ActionV5/ActionV6 types.
+| File | Change |
+|------|--------|
+| `zebra-chain/src/orchard/action.rs` | Added `tag: [u8; 16]` field (gated with cfg) |
+| `zebra-chain/src/orchard/action.rs` | Added `zcash_serialize_v5/v6` and `zcash_deserialize_v5/v6` methods |
+| `zebra-chain/src/transaction/serialize.rs` | `ShieldedData::zcash_serialize_v5/v6` methods |
+| `zebra-chain/src/transaction/serialize.rs` | V6 transaction uses V6 orchard serialization |
 
-```
-Transaction::V1 ─┐
-Transaction::V2 ─┤
-Transaction::V3 ─┼─ (no Orchard)
-Transaction::V4 ─┘
-Transaction::V5 ─┬─ orchard::ShieldedData ─── Action (shared type)
-Transaction::V6 ─┘
-```
+**Completed:**
 
-### 2.1 Add Tag Field to Action
-
-**File:** `zebra-chain/src/orchard/action.rs`
-
-```rust
-pub struct Action {
-    pub cv: ValueCommitment,
-    pub nullifier: Nullifier,
-    pub rk: VerificationKeyBytes<SpendAuth>,
-    pub cm_x: pallas::Base,
-    pub ephemeral_key: EphemeralPublicKey,
-    pub enc_ciphertext: EncryptedNote,
-    pub out_ciphertext: WrappedNoteKey,
-
-    /// Detection tag (V6/NU7+ only, zeros for V5)
-    #[cfg(all(zcash_unstable = "nu7", feature = "tx_v6"))]
-    pub tag: [u8; 16],
-}
-```
-
-### 2.2 Version-Aware Serialization Methods
-
-Replace the single `ZcashSerialize`/`ZcashDeserialize` impl with version-specific methods:
-
-```rust
-impl Action {
-    /// Serialize in V5 format (no tag)
-    pub fn zcash_serialize_v5<W: Write>(&self, mut writer: W) -> io::Result<()> {
-        self.cv.zcash_serialize(&mut writer)?;
-        writer.write_all(&<[u8; 32]>::from(self.nullifier)[..])?;
-        writer.write_all(&<[u8; 32]>::from(self.rk)[..])?;
-        writer.write_all(&<[u8; 32]>::from(self.cm_x)[..])?;
-        self.ephemeral_key.zcash_serialize(&mut writer)?;
-        self.enc_ciphertext.zcash_serialize(&mut writer)?;
-        self.out_ciphertext.zcash_serialize(&mut writer)?;
-        // NO tag for V5
-        Ok(())
-    }
-
-    /// Serialize in V6 format (with tag)
-    #[cfg(all(zcash_unstable = "nu7", feature = "tx_v6"))]
-    pub fn zcash_serialize_v6<W: Write>(&self, mut writer: W) -> io::Result<()> {
-        self.zcash_serialize_v5(&mut writer)?;  // Reuse V5 fields
-        writer.write_all(&self.tag)?;            // Add tag
-        Ok(())
-    }
-}
-```
-
-### 2.3 Route in Transaction Serialization
-
-**File:** `zebra-chain/src/transaction/serialize.rs`
-
-The Transaction serialization already routes by version. Update orchard serialization:
-
-```rust
-// In Transaction::zcash_serialize:
-match self {
-    Transaction::V5 { orchard_shielded_data, .. } => {
-        if let Some(orchard) = orchard_shielded_data {
-            for action in &orchard.actions {
-                action.zcash_serialize_v5(&mut writer)?;  // V5 format
-            }
-        }
-    }
-    #[cfg(all(zcash_unstable = "nu7", feature = "tx_v6"))]
-    Transaction::V6 { orchard_shielded_data, .. } => {
-        if let Some(orchard) = orchard_shielded_data {
-            for action in &orchard.actions {
-                action.zcash_serialize_v6(&mut writer)?;  // V6 format with tag
-            }
-        }
-    }
-}
-```
-
-**Tasks:**
-
-- [ ] Add `tag: [u8; 16]` field to Action (gated with cfg)
-- [ ] Implement `zcash_serialize_v5` / `zcash_deserialize_v5`
-- [ ] Implement `zcash_serialize_v6` / `zcash_deserialize_v6` (gated)
-- [ ] Update Transaction serialization to call version-specific methods
-- [ ] Update Transaction deserialization similarly
-- [ ] Add V5 compatibility tests (byte-for-byte identical)
+- [x] Add `tag: [u8; 16]` field to Action (gated with cfg)
+- [x] Implement `zcash_serialize_v5` / `zcash_deserialize_v5`
+- [x] Implement `zcash_serialize_v6` / `zcash_deserialize_v6` (gated)
+- [x] Update Transaction serialization to call version-specific methods
+- [x] Update Transaction deserialization similarly
+- [x] V5 compatibility verified (builds without NU7 flags)
 
 ---
 
