@@ -28,15 +28,19 @@ print_help() {
     echo "  logs      Follow service logs"
     echo ""
     echo "Development:"
-    echo "  build     Build zcash-devtool"
-    echo "  test      Run integration tests"
+    echo "  build [--nu7]   Build zcash-devtool (--nu7 enables V6/tag support)"
+    echo "  test            Run integration tests"
+    echo "  check [type]    Run safety checks (consensus, cfg, all)"
     echo ""
     echo "Git (multi-repo):"
-    echo "  git status          Status across all repos"
-    echo "  git branch <name>   Create feature branch"
-    echo "  git commit <msg>    Commit across submodules"
-    echo "  git push            Push all repos"
-    echo "  git sync            Fetch upstream, show drift"
+    echo "  git status             Status across all repos"
+    echo "  git branch <name>      Create feature branch"
+    echo "  git checkout <branch>  Checkout branch across repos"
+    echo "  git commit <msg>       Commit across submodules"
+    echo "  git push               Push all repos"
+    echo "  git sync               Fetch upstream, show drift"
+    echo "  git reset <repo>       Reset repo branch to main"
+    echo "  git diff [repo]        Show changes from main"
     echo ""
     echo "Onboarding:"
     echo "  fork      Fork all repos to your GitHub account"
@@ -46,6 +50,8 @@ print_help() {
     echo "  ./dev setup                          # First-time setup"
     echo "  ./dev up                             # Start services"
     echo "  ./dev git branch add-tag-field       # Start feature"
+    echo "  ./dev build --nu7                    # Build with NU7/V6 support"
+    echo "  ./dev git reset zebra --backup       # Reset zebra to main"
 }
 
 check_tool() {
@@ -166,13 +172,146 @@ cmd_test() {
     fi
 }
 
+cmd_check() {
+    local check_type="${1:-all}"
+    
+    echo -e "${BLUE}Running safety checks...${NC}"
+    echo ""
+    
+    case "$check_type" in
+        consensus|v5)
+            check_v5_consensus
+            ;;
+        cfg|gates)
+            check_cfg_gates
+            ;;
+        all)
+            check_v5_consensus
+            echo ""
+            check_cfg_gates
+            ;;
+        *)
+            echo "Usage: ./dev check [consensus|cfg|all]"
+            echo ""
+            echo "  consensus  Check V5 serialization unchanged"
+            echo "  cfg        Check NU7/V6 code is properly gated"
+            echo "  all        Run all checks (default)"
+            ;;
+    esac
+}
+
+check_v5_consensus() {
+    echo -e "${YELLOW}Checking V5 serialization safety...${NC}"
+    
+    local issues=0
+    
+    # Check Zebra for ungated tag serialization
+    if [ -d "zebra" ]; then
+        local zebra_tags
+        zebra_tags=$(grep -r "write_all.*tag\|read_exact.*tag" zebra/zebra-chain/src/orchard/ 2>/dev/null | grep -v "#\[cfg" | grep -v "// " || true)
+        if [ -n "$zebra_tags" ]; then
+            echo -e "  ${RED}✗${NC} Zebra: Found ungated tag serialization"
+            echo "$zebra_tags" | head -3 | sed 's/^/    /'
+            issues=1
+        else
+            echo -e "  ${GREEN}✓${NC} Zebra: No ungated tag serialization"
+        fi
+    fi
+    
+    # Check Zaino for ungated tag parsing
+    if [ -d "zaino" ]; then
+        local zaino_tags
+        zaino_tags=$(grep -r "read_bytes.*16.*tag\|tag.*read_bytes" zaino/zaino-fetch/src/ 2>/dev/null | grep -v "tx_version\|if.*>= 6\|#\[cfg" || true)
+        if [ -n "$zaino_tags" ]; then
+            echo -e "  ${RED}✗${NC} Zaino: Found potentially ungated tag parsing"
+            echo "$zaino_tags" | head -3 | sed 's/^/    /'
+            issues=1
+        else
+            echo -e "  ${GREEN}✓${NC} Zaino: Tag parsing appears safe"
+        fi
+    fi
+    
+    # Check librustzcash V5 functions don't write tags
+    if [ -d "librustzcash" ]; then
+        local v5_tags
+        v5_tags=$(grep -A5 "fn write_action_without_auth\b" librustzcash/zcash_primitives/src/transaction/components/orchard.rs 2>/dev/null | grep "write_tag\|tag()" || true)
+        if [ -n "$v5_tags" ]; then
+            echo -e "  ${RED}✗${NC} librustzcash: V5 write_action_without_auth may write tags"
+            issues=1
+        else
+            echo -e "  ${GREEN}✓${NC} librustzcash: V5 serialization doesn't write tags"
+        fi
+    fi
+    
+    if [ $issues -eq 0 ]; then
+        echo -e "${GREEN}✅ V5 consensus checks passed${NC}"
+    else
+        echo -e "${RED}❌ V5 consensus issues found - review before merge!${NC}"
+        return 1
+    fi
+}
+
+check_cfg_gates() {
+    echo -e "${YELLOW}Checking NU7/V6 cfg gates...${NC}"
+    
+    local issues=0
+    
+    # Check that V6 functions exist and are gated
+    if [ -d "librustzcash" ]; then
+        local v6_gated
+        v6_gated=$(grep -B2 "fn.*_v6\|fn read_v6\|fn write_v6" librustzcash/zcash_primitives/src/transaction/components/orchard.rs 2>/dev/null | grep -c "cfg.*nu7\|cfg.*zfuture" || echo "0")
+        local v6_total
+        v6_total=$(grep -c "fn.*_v6\|fn read_v6\|fn write_v6" librustzcash/zcash_primitives/src/transaction/components/orchard.rs 2>/dev/null || echo "0")
+        
+        if [ "$v6_gated" -ge "$v6_total" ] && [ "$v6_total" -gt "0" ]; then
+            echo -e "  ${GREEN}✓${NC} librustzcash: V6 functions are gated ($v6_gated/$v6_total)"
+        else
+            echo -e "  ${YELLOW}⚠${NC} librustzcash: Check V6 function gating ($v6_gated/$v6_total gated)"
+            issues=1
+        fi
+    fi
+    
+    # Check Zebra V6 gating
+    if [ -d "zebra" ]; then
+        local zebra_v6
+        zebra_v6=$(grep -r "Transaction::V6\|ActionV6" zebra/zebra-chain/src/ 2>/dev/null | grep -v "#\[cfg" | grep -v "//" || true)
+        if [ -z "$zebra_v6" ]; then
+            echo -e "  ${GREEN}✓${NC} Zebra: V6 types appear properly gated"
+        else
+            echo -e "  ${YELLOW}⚠${NC} Zebra: Check V6 type gating"
+            issues=1
+        fi
+    fi
+    
+    if [ $issues -eq 0 ]; then
+        echo -e "${GREEN}✅ Cfg gate checks passed${NC}"
+    else
+        echo -e "${YELLOW}⚠ Some cfg gate checks need review${NC}"
+    fi
+}
+
 cmd_build() {
-    echo -e "${BLUE}Building zcash-devtool...${NC}"
+    local nu7_mode="${1:-}"
+    
+    if [ "$nu7_mode" = "--nu7" ]; then
+        echo -e "${BLUE}Building zcash-devtool with NU7 features...${NC}"
+        echo -e "${YELLOW}Note: NU7 is experimental and enables V6 transactions with tags${NC}"
+        echo ""
+        export RUSTFLAGS='--cfg zcash_unstable="nu7"'
+        local features="--features tx_v6"
+    else
+        echo -e "${BLUE}Building zcash-devtool...${NC}"
+        local features=""
+    fi
+    
     if [ -d "zcash-devtool" ]; then
         cd zcash-devtool
-        cargo build --release
+        cargo build --release $features
         cd ..
         echo -e "${GREEN}✅ zcash-devtool built: ./zcash-devtool/target/release/zcash-devtool${NC}"
+        if [ "$nu7_mode" = "--nu7" ]; then
+            echo -e "${GREEN}   (with NU7/V6 support enabled)${NC}"
+        fi
     else
         echo -e "${RED}Error: zcash-devtool directory not found${NC}"
         exit 1
@@ -359,6 +498,169 @@ cmd_git_sync() {
     done
 }
 
+cmd_git_reset() {
+    local repo="${1:-}"
+    local keep_backup="${2:-}"
+    
+    if [ -z "$repo" ]; then
+        echo -e "${RED}Usage: ./dev git reset <repo> [--backup]${NC}"
+        echo "Example: ./dev git reset zebra --backup"
+        echo ""
+        echo "Resets a submodule's feature branch to main."
+        echo "Use --backup to create a backup branch first."
+        exit 1
+    fi
+    
+    if [ ! -d "$repo" ]; then
+        echo -e "${RED}Error: $repo not found${NC}"
+        exit 1
+    fi
+    
+    local current_branch
+    current_branch=$(cd "$repo" && git branch --show-current)
+    
+    if [ "$current_branch" = "main" ]; then
+        echo -e "${YELLOW}$repo is already on main${NC}"
+        exit 0
+    fi
+    
+    echo -e "${BLUE}Resetting $repo ($current_branch → main)${NC}"
+    
+    # Create backup if requested
+    if [ "$keep_backup" = "--backup" ]; then
+        local backup_name="${current_branch}-backup-$(date +%Y%m%d)"
+        echo "  Creating backup: $backup_name"
+        (cd "$repo" && git branch "$backup_name" "$current_branch" 2>/dev/null || true)
+    fi
+    
+    # Reset to main
+    (cd "$repo" && \
+        git checkout main && \
+        git branch -D "$current_branch" 2>/dev/null || true && \
+        git checkout -b "$current_branch")
+    
+    echo -e "${GREEN}✅ $repo reset to main on branch $current_branch${NC}"
+}
+
+cmd_git_checkout() {
+    local branch="${1:-}"
+    shift || true
+    local repos="${*:-$SUBMODULES}"
+    
+    if [ -z "$branch" ]; then
+        echo -e "${RED}Usage: ./dev git checkout <branch> [repos...]${NC}"
+        echo "Example: ./dev git checkout feature/tag-field"
+        echo "Example: ./dev git checkout main orchard librustzcash"
+        exit 1
+    fi
+    
+    for repo in $repos; do
+        if [ -d "$repo" ]; then
+            if (cd "$repo" && git show-ref --verify --quiet "refs/heads/$branch"); then
+                echo -e "${BLUE}$repo${NC}: checking out $branch"
+                (cd "$repo" && git checkout "$branch")
+            else
+                echo -e "${YELLOW}$repo${NC}: branch $branch not found, skipping"
+            fi
+        fi
+    done
+}
+
+cmd_git_diff() {
+    local repo="${1:-}"
+    
+    if [ -z "$repo" ]; then
+        # Show summary for all repos
+        echo -e "${BLUE}Changes from main across all repos:${NC}"
+        echo ""
+        for sub in $SUBMODULES; do
+            if [ -d "$sub" ]; then
+                local commits
+                commits=$(cd "$sub" && git rev-list main..HEAD --count 2>/dev/null || echo "0")
+                local files
+                files=$(cd "$sub" && git diff main --stat 2>/dev/null | tail -1 || echo "")
+                if [ "$commits" != "0" ]; then
+                    echo -e "${GREEN}$sub${NC}: $commits commits"
+                    [ -n "$files" ] && echo "  $files"
+                else
+                    echo -e "${YELLOW}$sub${NC}: no changes from main"
+                fi
+            fi
+        done
+    else
+        # Show detailed diff for one repo
+        if [ -d "$repo" ]; then
+            echo -e "${BLUE}Diff for $repo (main..HEAD):${NC}"
+            (cd "$repo" && git diff main --stat)
+            echo ""
+            echo "Full diff:"
+            (cd "$repo" && git diff main)
+        else
+            echo -e "${RED}Error: $repo not found${NC}"
+            exit 1
+        fi
+    fi
+}
+
+cmd_git_log() {
+    local repo="${1:-}"
+    local count="${2:-10}"
+    
+    if [ -z "$repo" ]; then
+        # Show recent commits for all repos with changes
+        echo -e "${BLUE}Recent commits across repos (from main):${NC}"
+        echo ""
+        for sub in $SUBMODULES; do
+            if [ -d "$sub" ]; then
+                local commits
+                commits=$(cd "$sub" && git rev-list main..HEAD --count 2>/dev/null || echo "0")
+                if [ "$commits" != "0" ]; then
+                    echo -e "${GREEN}$sub${NC} ($commits commits):"
+                    (cd "$sub" && git log main..HEAD --oneline | head -5)
+                    echo ""
+                fi
+            fi
+        done
+    else
+        # Show log for specific repo
+        if [ -d "$repo" ]; then
+            echo -e "${BLUE}Commits in $repo (main..HEAD):${NC}"
+            (cd "$repo" && git log main..HEAD --oneline -n "$count")
+        else
+            echo -e "${RED}Error: $repo not found${NC}"
+            exit 1
+        fi
+    fi
+}
+
+cmd_git_files() {
+    local repo="${1:-}"
+    
+    if [ -z "$repo" ]; then
+        echo -e "${BLUE}Files changed from main across all repos:${NC}"
+        echo ""
+        for sub in $SUBMODULES; do
+            if [ -d "$sub" ]; then
+                local files
+                files=$(cd "$sub" && git diff main --name-only 2>/dev/null)
+                if [ -n "$files" ]; then
+                    echo -e "${GREEN}$sub${NC}:"
+                    echo "$files" | sed 's/^/  /'
+                    echo ""
+                fi
+            fi
+        done
+    else
+        if [ -d "$repo" ]; then
+            echo -e "${BLUE}Files changed in $repo (from main):${NC}"
+            (cd "$repo" && git diff main --name-only)
+        else
+            echo -e "${RED}Error: $repo not found${NC}"
+            exit 1
+        fi
+    fi
+}
+
 cmd_git() {
     local subcmd="${1:-}"
     shift || true
@@ -379,21 +681,44 @@ cmd_git() {
         sync)
             cmd_git_sync "$@"
             ;;
+        reset)
+            cmd_git_reset "$@"
+            ;;
+        checkout|co)
+            cmd_git_checkout "$@"
+            ;;
+        diff)
+            cmd_git_diff "$@"
+            ;;
+        log)
+            cmd_git_log "$@"
+            ;;
+        files)
+            cmd_git_files "$@"
+            ;;
         *)
             echo "Usage: ./dev git <command>"
             echo ""
             echo "Commands:"
-            echo "  status          Show status across all repos"
-            echo "  branch <name>   Create feature branch (default: orchard librustzcash)"
-            echo "  commit <msg>    Commit across dirty submodules + update main"
-            echo "  push            Push all repos"
-            echo "  sync            Fetch upstream, show ahead/behind"
+            echo "  status           Show status across all repos"
+            echo "  branch <name>    Create feature branch (default: orchard librustzcash)"
+            echo "  checkout <branch> Checkout branch across repos"
+            echo "  commit <msg>     Commit across dirty submodules + update main"
+            echo "  push             Push all repos"
+            echo "  sync             Fetch upstream, show ahead/behind"
+            echo "  reset <repo>     Reset repo's branch to main (--backup to keep old)"
+            echo "  diff [repo]      Show changes from main"
+            echo "  log [repo]       Show commits from main"
+            echo "  files [repo]     List changed files from main"
             echo ""
             echo "Examples:"
             echo "  ./dev git status"
             echo "  ./dev git branch add-tag-field"
+            echo "  ./dev git checkout feature/tag-field"
             echo "  ./dev git commit \"Add tag field to Action\""
-            echo "  ./dev git push"
+            echo "  ./dev git reset zebra --backup"
+            echo "  ./dev git diff orchard"
+            echo "  ./dev git log"
             ;;
     esac
 }
@@ -535,8 +860,11 @@ case "${1:-help}" in
     test)
         cmd_test
         ;;
+    check)
+        cmd_check "${2:-all}"
+        ;;
     build)
-        cmd_build
+        cmd_build "${2:-}"
         ;;
     status)
         cmd_status
