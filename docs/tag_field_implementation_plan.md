@@ -5,13 +5,13 @@
 
 ## Overview
 
-| Component           | Repository       | Key Files                           | Status          |
-| ------------------- | ---------------- | ----------------------------------- | --------------- |
-| Protocol layer      | `orchard/`       | `src/action.rs`, `src/tag.rs`       | ✅ Done         |
-| Transaction builder | `librustzcash/`  | `zcash_primitives/src/transaction/` | ⚠️ Fix V6 stubs |
-| Node parsing        | `zebra/`         | `zebra-chain/src/orchard/`          | 🔲 Not started  |
-| Indexing            | `zaino/`         | `zaino-state/src/`                  | 🔲 Not started  |
-| Wallet CLI          | `zcash-devtool/` | `src/`                              | 🔲 Not started  |
+| Component           | Repository       | Key Files                           | Status         |
+| ------------------- | ---------------- | ----------------------------------- | -------------- |
+| Protocol layer      | `orchard/`       | `src/action.rs`, `src/tag.rs`       | ✅ Done        |
+| Transaction builder | `librustzcash/`  | `zcash_primitives/src/transaction/` | ✅ Done        |
+| Node parsing        | `zebra/`         | `zebra-chain/src/orchard/`          | 🔲 Not started |
+| Indexing            | `zaino/`         | `zaino-state/src/`                  | 🔲 Not started |
+| Wallet CLI          | `zcash-devtool/` | `src/`                              | 🔲 Not started |
 
 ## Critical Requirement: NU7 Gating
 
@@ -42,75 +42,45 @@
 | `src/note_encryption.rs`    | CompactAction with optional tag field            |
 | `src/bundle/commitments.rs` | Tag NOT included in txid hash (ZIP-244 compat)   |
 
-### librustzcash (5 commits on feature/tag-field)
+### librustzcash (6 commits on feature/tag-field)
 
-| File                                   | Change                                        |
-| -------------------------------------- | --------------------------------------------- |
-| `zcash_primitives/.../orchard.rs`      | `read/write_action_without_auth_v6` (gated)   |
-| `zcash_client_backend/src/proto.rs`    | CompactOrchardAction ↔ CompactAction with tag |
-| `zcash_client_backend/src/scanning.rs` | `matches_tag()` for PIR pre-filtering         |
-| `compact_formats.proto`                | Added `bytes tag = 5` to CompactOrchardAction |
-
-**Issue**: `read_v6_bundle` and `write_v6_bundle` are stubs that just call V5 versions.
+| File                                   | Change                                          |
+| -------------------------------------- | ----------------------------------------------- |
+| `zcash_primitives/.../orchard.rs`      | `read/write_action_without_auth_v6` (gated)     |
+| `zcash_primitives/.../orchard.rs`      | `read/write_v6_bundle` now use V6 action funcs  |
+| `zcash_client_backend/src/proto.rs`    | CompactOrchardAction ↔ CompactAction with tag   |
+| `zcash_client_backend/src/scanning.rs` | `matches_tag()` for PIR pre-filtering           |
+| `compact_formats.proto`                | Added `bytes tag = 5` to CompactOrchardAction   |
 
 ---
 
-## Phase 1: Fix librustzcash V6 Bundle Functions
+## Phase 1: Fix librustzcash V6 Bundle Functions ✅
 
-**Problem**: `read_v6_bundle` and `write_v6_bundle` just call V5 versions.
+**Status**: Complete
 
 **File:** `zcash_primitives/src/transaction/components/orchard.rs`
 
-### 1.1 Fix `read_v6_bundle`
+### What was fixed
+
+`read_v6_bundle` and `write_v6_bundle` were stubs calling V5 versions.
+Now they properly use the V6 action functions that include the 16-byte tag:
 
 ```rust
-// CURRENT (broken stub):
-#[cfg(any(zcash_unstable = "zfuture", zcash_unstable = "nu7"))]
-pub fn read_v6_bundle<R: Read>(reader: R) -> io::Result<...> {
-    read_v5_bundle(reader)  // Wrong!
-}
+// read_v6_bundle now uses:
+Vector::read(&mut reader, |r| read_action_without_auth_v6(r))
 
-// SHOULD BE:
-#[cfg(any(zcash_unstable = "zfuture", zcash_unstable = "nu7"))]
-pub fn read_v6_bundle<R: Read>(
-    mut reader: R,
-) -> io::Result<Option<orchard::Bundle<Authorized, ZatBalance>>> {
-    let actions_without_auth = Vector::read(&mut reader, |r| read_action_without_auth_v6(r))?;
-    // ... rest same as v5 (flags, value_balance, anchor, proof, sigs)
-}
+// write_v6_bundle now uses:
+Vector::write_nonempty(&mut writer, bundle.actions(), |w, a| {
+    write_action_without_auth_v6(w, a)
+})
 ```
 
-### 1.2 Fix `write_v6_bundle`
+**Completed:**
 
-```rust
-// CURRENT (broken stub):
-#[cfg(any(zcash_unstable = "zfuture", zcash_unstable = "nu7"))]
-pub fn write_v6_bundle<W: Write>(...) -> io::Result<()> {
-    write_v5_bundle(bundle, writer)  // Wrong!
-}
-
-// SHOULD BE:
-#[cfg(any(zcash_unstable = "zfuture", zcash_unstable = "nu7"))]
-pub fn write_v6_bundle<W: Write>(
-    bundle: Option<&orchard::Bundle<Authorized, ZatBalance>>,
-    mut writer: W,
-) -> io::Result<()> {
-    if let Some(bundle) = &bundle {
-        Vector::write_nonempty(&mut writer, bundle.actions(), |w, a| {
-            write_action_without_auth_v6(w, a)  // Use V6 writer with tags!
-        })?;
-        // ... rest same as v5 (flags, value_balance, anchor, proof, sigs)
-    }
-    Ok(())
-}
-```
-
-**Tasks:**
-
-- [ ] Update `read_v6_bundle` to use `read_action_without_auth_v6`
-- [ ] Update `write_v6_bundle` to use `write_action_without_auth_v6`
-- [ ] Add round-trip tests for V6 bundles with tags
-- [ ] Verify V5 paths unchanged with `./dev check`
+- [x] Update `read_v6_bundle` to use `read_action_without_auth_v6`
+- [x] Update `write_v6_bundle` to use `write_action_without_auth_v6`
+- [x] Verify V5 paths unchanged with `./dev check`
+- [ ] Add round-trip tests for V6 bundles with tags (future)
 
 ---
 
