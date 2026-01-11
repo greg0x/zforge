@@ -38,8 +38,9 @@ print_help() {
     echo "  git commit <msg>       Commit across submodules"
     echo "  git push               Push all repos"
     echo "  git sync               Fetch upstream, show drift"
-    echo "  git reset <repo>       Reset repo branch to main"
     echo "  git diff [repo]        Show changes from main"
+    echo "  git log [branch]       Show commits on feature branch"
+    echo "  git files [repo]       List changed files from main"
     echo ""
     echo "Onboarding:"
     echo "  fork      Fork all repos to your GitHub account"
@@ -50,7 +51,7 @@ print_help() {
     echo "  ./dev up                             # Start services"
     echo "  ./dev git branch add-tag-field       # Start feature"
     echo "  ./dev build --nu7                    # Build with NU7/V6 support"
-    echo "  ./dev git reset zebra --backup       # Reset zebra to main"
+    echo "  ./dev git log                        # Show commits on current feature branch"
 }
 
 check_tool() {
@@ -379,50 +380,6 @@ cmd_git_sync() {
     done
 }
 
-cmd_git_reset() {
-    local repo="${1:-}"
-    local keep_backup="${2:-}"
-    
-    if [ -z "$repo" ]; then
-        echo -e "${RED}Usage: ./dev git reset <repo> [--backup]${NC}"
-        echo "Example: ./dev git reset zebra --backup"
-        echo ""
-        echo "Resets a submodule's feature branch to main."
-        echo "Use --backup to create a backup branch first."
-        exit 1
-    fi
-    
-    if [ ! -d "$repo" ]; then
-        echo -e "${RED}Error: $repo not found${NC}"
-        exit 1
-    fi
-    
-    local current_branch
-    current_branch=$(cd "$repo" && git branch --show-current)
-    
-    if [ "$current_branch" = "main" ]; then
-        echo -e "${YELLOW}$repo is already on main${NC}"
-        exit 0
-    fi
-    
-    echo -e "${BLUE}Resetting $repo ($current_branch → main)${NC}"
-    
-    # Create backup if requested
-    if [ "$keep_backup" = "--backup" ]; then
-        local backup_name="${current_branch}-backup-$(date +%Y%m%d)"
-        echo "  Creating backup: $backup_name"
-        (cd "$repo" && git branch "$backup_name" "$current_branch" 2>/dev/null || true)
-    fi
-    
-    # Reset to main
-    (cd "$repo" && \
-        git checkout main && \
-        git branch -D "$current_branch" 2>/dev/null || true && \
-        git checkout -b "$current_branch")
-    
-    echo -e "${GREEN}✅ $repo reset to main on branch $current_branch${NC}"
-}
-
 cmd_git_checkout() {
     local branch="${1:-}"
     shift || true
@@ -484,33 +441,50 @@ cmd_git_diff() {
 }
 
 cmd_git_log() {
-    local repo="${1:-}"
-    local count="${2:-10}"
+    local branch="${1:-}"
     
-    if [ -z "$repo" ]; then
-        # Show recent commits for all repos with changes
-        echo -e "${BLUE}Recent commits across repos (from main):${NC}"
-        echo ""
+    # If no branch specified, detect from first repo that's not on main
+    if [ -z "$branch" ]; then
         for sub in $SUBMODULES; do
             if [ -d "$sub" ]; then
-                local commits
-                commits=$(cd "$sub" && git rev-list main..HEAD --count 2>/dev/null || echo "0")
-                if [ "$commits" != "0" ]; then
-                    echo -e "${GREEN}$sub${NC} ($commits commits):"
-                    (cd "$sub" && git log main..HEAD --oneline | head -5)
-                    echo ""
+                local current
+                current=$(cd "$sub" && git branch --show-current 2>/dev/null)
+                if [ -n "$current" ] && [ "$current" != "main" ]; then
+                    branch="$current"
+                    break
                 fi
             fi
         done
-    else
-        # Show log for specific repo
-        if [ -d "$repo" ]; then
-            echo -e "${BLUE}Commits in $repo (main..HEAD):${NC}"
-            (cd "$repo" && git log main..HEAD --oneline -n "$count")
-        else
-            echo -e "${RED}Error: $repo not found${NC}"
-            exit 1
+    fi
+    
+    if [ -z "$branch" ] || [ "$branch" = "main" ]; then
+        echo -e "${YELLOW}All repos on main, no feature branch detected${NC}"
+        echo "Usage: ./dev git log [branch-name]"
+        return
+    fi
+    
+    echo -e "${BLUE}Commits on $branch across repos:${NC}"
+    echo ""
+    
+    local found_any=0
+    for sub in $SUBMODULES; do
+        if [ -d "$sub" ]; then
+            # Check if branch exists in this repo
+            if (cd "$sub" && git show-ref --verify --quiet "refs/heads/$branch" 2>/dev/null); then
+                local commits
+                commits=$(cd "$sub" && git rev-list main.."$branch" --count 2>/dev/null || echo "0")
+                if [ "$commits" != "0" ]; then
+                    found_any=1
+                    echo -e "${GREEN}$sub${NC} ($commits commits):"
+                    (cd "$sub" && git log main.."$branch" --oneline | head -10)
+                    echo ""
+                fi
+            fi
         fi
+    done
+    
+    if [ "$found_any" = "0" ]; then
+        echo -e "${YELLOW}No commits found on $branch (branch may not exist or has no changes from main)${NC}"
     fi
 }
 
@@ -562,9 +536,6 @@ cmd_git() {
         sync)
             cmd_git_sync "$@"
             ;;
-        reset)
-            cmd_git_reset "$@"
-            ;;
         checkout|co)
             cmd_git_checkout "$@"
             ;;
@@ -587,9 +558,8 @@ cmd_git() {
             echo "  commit <msg>     Commit across dirty submodules + update main"
             echo "  push             Push all repos"
             echo "  sync             Fetch upstream, show ahead/behind"
-            echo "  reset <repo>     Reset repo's branch to main (--backup to keep old)"
             echo "  diff [repo]      Show changes from main"
-            echo "  log [repo]       Show commits from main"
+            echo "  log [branch]     Show commits on feature branch across repos"
             echo "  files [repo]     List changed files from main"
             echo ""
             echo "Examples:"
@@ -597,7 +567,6 @@ cmd_git() {
             echo "  ./dev git branch add-tag-field"
             echo "  ./dev git checkout feature/tag-field"
             echo "  ./dev git commit \"Add tag field to Action\""
-            echo "  ./dev git reset zebra --backup"
             echo "  ./dev git diff orchard"
             echo "  ./dev git log"
             ;;
