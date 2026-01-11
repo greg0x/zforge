@@ -44,13 +44,13 @@
 
 ### librustzcash (6 commits on feature/tag-field)
 
-| File                                   | Change                                          |
-| -------------------------------------- | ----------------------------------------------- |
-| `zcash_primitives/.../orchard.rs`      | `read/write_action_without_auth_v6` (gated)     |
-| `zcash_primitives/.../orchard.rs`      | `read/write_v6_bundle` now use V6 action funcs  |
-| `zcash_client_backend/src/proto.rs`    | CompactOrchardAction ↔ CompactAction with tag   |
-| `zcash_client_backend/src/scanning.rs` | `matches_tag()` for PIR pre-filtering           |
-| `compact_formats.proto`                | Added `bytes tag = 5` to CompactOrchardAction   |
+| File                                   | Change                                         |
+| -------------------------------------- | ---------------------------------------------- |
+| `zcash_primitives/.../orchard.rs`      | `read/write_action_without_auth_v6` (gated)    |
+| `zcash_primitives/.../orchard.rs`      | `read/write_v6_bundle` now use V6 action funcs |
+| `zcash_client_backend/src/proto.rs`    | CompactOrchardAction ↔ CompactAction with tag  |
+| `zcash_client_backend/src/scanning.rs` | `matches_tag()` for PIR pre-filtering          |
+| `compact_formats.proto`                | Added `bytes tag = 5` to CompactOrchardAction  |
 
 ---
 
@@ -80,7 +80,6 @@ Vector::write_nonempty(&mut writer, bundle.actions(), |w, a| {
 - [x] Update `read_v6_bundle` to use `read_action_without_auth_v6`
 - [x] Update `write_v6_bundle` to use `write_action_without_auth_v6`
 - [x] Verify V5 paths unchanged with `./dev check`
-- [ ] Add round-trip tests for V6 bundles with tags (future)
 
 ---
 
