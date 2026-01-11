@@ -10,7 +10,7 @@
 | Protocol layer      | `orchard/`       | `src/action.rs`, `src/tag.rs`       | ✅ Done        |
 | Transaction builder | `librustzcash/`  | `zcash_primitives/src/transaction/` | ✅ Done        |
 | Node parsing        | `zebra/`         | `zebra-chain/src/orchard/`          | ✅ Done        |
-| Indexing            | `zaino/`         | `zaino-state/src/`                  | 🔲 Not started |
+| Indexing            | `zaino/`         | `zaino-state/src/`                  | ✅ Done        |
 | Wallet CLI          | `zcash-devtool/` | `src/`                              | 🔲 Not started |
 
 ## Critical Requirement: NU7 Gating
@@ -111,10 +111,10 @@ Vector::write_nonempty(&mut writer, bundle.actions(), |w, a| {
 
 ### Tests Added
 
-| Test                  | File                       | Purpose                                        |
-| --------------------- | -------------------------- | ---------------------------------------------- |
-| `action_v5_roundtrip` | `orchard/tests/prop.rs`    | V5 serialization = 820 bytes, roundtrip works  |
-| `action_v6_roundtrip` | `orchard/tests/prop.rs`    | V6 serialization = 836 bytes, tag is preserved |
+| Test                  | File                    | Purpose                                        |
+| --------------------- | ----------------------- | ---------------------------------------------- |
+| `action_v5_roundtrip` | `orchard/tests/prop.rs` | V5 serialization = 820 bytes, roundtrip works  |
+| `action_v6_roundtrip` | `orchard/tests/prop.rs` | V6 serialization = 836 bytes, tag is preserved |
 
 Run tests with:
 
@@ -129,35 +129,30 @@ RUSTFLAGS='--cfg zcash_unstable="nu7"' cargo test -p zebra-chain --features tx_v
 
 ---
 
-## Phase 3: Zaino Implementation
+## Phase 3: Zaino Implementation ✅
+
+**Status**: Complete
 
 **Key Principle**: Parse based on transaction version.
 
-**File:** `zaino-fetch/src/chain/transaction.rs`
+### What was implemented
 
-```rust
-impl ParseFromSlice for Action {
-    fn parse_from_slice(data: &[u8], tx_version: u32) -> Result<(&[u8], Self)> {
-        // ... existing fields ...
+| File                                    | Change                                                    |
+| --------------------------------------- | --------------------------------------------------------- |
+| `zaino-proto/.../compact_formats.proto` | Added `bytes tag = 5` to CompactOrchardAction             |
+| `zaino-fetch/src/chain/transaction.rs`  | Action struct with tag field, V6 parsing, version routing |
+| `zaino-state/.../db/legacy.rs`          | CompactOrchardAction with tag, V2 serialization format    |
+| `zaino-state/.../helpers.rs`            | cfg-gated tag extraction from zebra-chain actions         |
+| `zaino-state/.../db/v1.rs`              | Variable-length action skip for DB cursor operations      |
 
-        // Only read tag for V6+ transactions
-        let tag = if tx_version >= 6 {
-            read_bytes(&mut cursor, 16)?
-        } else {
-            vec![]  // Empty for V5
-        };
+**Completed:**
 
-        Ok((/* ... */))
-    }
-}
-```
-
-**Tasks:**
-
-- [ ] Pass transaction version through parsing chain
-- [ ] Only read tag bytes for V6 transactions
-- [ ] Update CompactOrchardAction to include tag (proto already done)
-- [ ] Index tags for V6 transactions
+- [x] Pass transaction version through parsing chain
+- [x] Only read tag bytes for V6 transactions
+- [x] Update CompactOrchardAction to include tag (proto + Rust)
+- [x] Add V6 transaction parser with version group ID 0xFFFFFFFF
+- [x] DB serialization V2 format with backward-compatible V1 decoding
+- [x] Tests for V5 compatibility and V6 tag round-trip
 
 ---
 
