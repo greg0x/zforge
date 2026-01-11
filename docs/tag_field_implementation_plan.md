@@ -104,6 +104,28 @@ Vector::write_nonempty(&mut writer, bundle.actions(), |w, a| {
 - [x] Update Transaction serialization to call version-specific methods
 - [x] Update Transaction deserialization similarly
 - [x] V5 compatibility verified (builds without NU7 flags)
+- [x] Add `action_v5_roundtrip` test (verifies 820-byte size, backward compat)
+- [x] Add `action_v6_roundtrip` test (verifies 836-byte size, tag preserved)
+- [x] Add `v6_strategy` to Transaction::Arbitrary (gated)
+- [x] Add `action_with_tag_strategy()` for V6 tag testing
+
+### Tests Added
+
+| Test                  | File                       | Purpose                                        |
+| --------------------- | -------------------------- | ---------------------------------------------- |
+| `action_v5_roundtrip` | `orchard/tests/prop.rs`    | V5 serialization = 820 bytes, roundtrip works  |
+| `action_v6_roundtrip` | `orchard/tests/prop.rs`    | V6 serialization = 836 bytes, tag is preserved |
+
+Run tests with:
+
+```bash
+# V5 test (always runs)
+cargo test -p zebra-chain action_v5_roundtrip
+
+# V6 + transaction roundtrip tests (requires NU7 flags)
+RUSTFLAGS='--cfg zcash_unstable="nu7"' cargo test -p zebra-chain --features tx_v6 action_v6_roundtrip
+RUSTFLAGS='--cfg zcash_unstable="nu7"' cargo test -p zebra-chain --features tx_v6 transaction_roundtrip
+```
 
 ---
 
