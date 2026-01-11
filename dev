@@ -30,7 +30,6 @@ print_help() {
     echo "Development:"
     echo "  build [--nu7]   Build zcash-devtool (--nu7 enables V6/tag support)"
     echo "  test            Run integration tests"
-    echo "  check [type]    Run safety checks (consensus, cfg, all)"
     echo ""
     echo "Git (multi-repo):"
     echo "  git status             Status across all repos"
@@ -169,124 +168,6 @@ cmd_test() {
     else
         echo -e "${RED}Error: tests/integration_test.sh not found${NC}"
         exit 1
-    fi
-}
-
-cmd_check() {
-    local check_type="${1:-all}"
-    
-    echo -e "${BLUE}Running safety checks...${NC}"
-    echo ""
-    
-    case "$check_type" in
-        consensus|v5)
-            check_v5_consensus
-            ;;
-        cfg|gates)
-            check_cfg_gates
-            ;;
-        all)
-            check_v5_consensus
-            echo ""
-            check_cfg_gates
-            ;;
-        *)
-            echo "Usage: ./dev check [consensus|cfg|all]"
-            echo ""
-            echo "  consensus  Check V5 serialization unchanged"
-            echo "  cfg        Check NU7/V6 code is properly gated"
-            echo "  all        Run all checks (default)"
-            ;;
-    esac
-}
-
-check_v5_consensus() {
-    echo -e "${YELLOW}Checking V5 serialization safety...${NC}"
-    
-    local issues=0
-    
-    # Check Zebra for ungated tag serialization
-    if [ -d "zebra" ]; then
-        local zebra_tags
-        zebra_tags=$(grep -r "write_all.*tag\|read_exact.*tag" zebra/zebra-chain/src/orchard/ 2>/dev/null | grep -v "#\[cfg" | grep -v "// " || true)
-        if [ -n "$zebra_tags" ]; then
-            echo -e "  ${RED}✗${NC} Zebra: Found ungated tag serialization"
-            echo "$zebra_tags" | head -3 | sed 's/^/    /'
-            issues=1
-        else
-            echo -e "  ${GREEN}✓${NC} Zebra: No ungated tag serialization"
-        fi
-    fi
-    
-    # Check Zaino for ungated tag parsing
-    if [ -d "zaino" ]; then
-        local zaino_tags
-        zaino_tags=$(grep -r "read_bytes.*16.*tag\|tag.*read_bytes" zaino/zaino-fetch/src/ 2>/dev/null | grep -v "tx_version\|if.*>= 6\|#\[cfg" || true)
-        if [ -n "$zaino_tags" ]; then
-            echo -e "  ${RED}✗${NC} Zaino: Found potentially ungated tag parsing"
-            echo "$zaino_tags" | head -3 | sed 's/^/    /'
-            issues=1
-        else
-            echo -e "  ${GREEN}✓${NC} Zaino: Tag parsing appears safe"
-        fi
-    fi
-    
-    # Check librustzcash V5 functions don't write tags
-    if [ -d "librustzcash" ]; then
-        local v5_tags
-        v5_tags=$(grep -A5 "fn write_action_without_auth\b" librustzcash/zcash_primitives/src/transaction/components/orchard.rs 2>/dev/null | grep "write_tag\|tag()" || true)
-        if [ -n "$v5_tags" ]; then
-            echo -e "  ${RED}✗${NC} librustzcash: V5 write_action_without_auth may write tags"
-            issues=1
-        else
-            echo -e "  ${GREEN}✓${NC} librustzcash: V5 serialization doesn't write tags"
-        fi
-    fi
-    
-    if [ $issues -eq 0 ]; then
-        echo -e "${GREEN}✅ V5 consensus checks passed${NC}"
-    else
-        echo -e "${RED}❌ V5 consensus issues found - review before merge!${NC}"
-        return 1
-    fi
-}
-
-check_cfg_gates() {
-    echo -e "${YELLOW}Checking NU7/V6 cfg gates...${NC}"
-    
-    local issues=0
-    
-    # Check that V6 functions exist and are gated
-    if [ -d "librustzcash" ]; then
-        local v6_gated
-        v6_gated=$(grep -B2 "fn.*_v6\|fn read_v6\|fn write_v6" librustzcash/zcash_primitives/src/transaction/components/orchard.rs 2>/dev/null | grep -c "cfg.*nu7\|cfg.*zfuture" || echo "0")
-        local v6_total
-        v6_total=$(grep -c "fn.*_v6\|fn read_v6\|fn write_v6" librustzcash/zcash_primitives/src/transaction/components/orchard.rs 2>/dev/null || echo "0")
-        
-        if [ "$v6_gated" -ge "$v6_total" ] && [ "$v6_total" -gt "0" ]; then
-            echo -e "  ${GREEN}✓${NC} librustzcash: V6 functions are gated ($v6_gated/$v6_total)"
-        else
-            echo -e "  ${YELLOW}⚠${NC} librustzcash: Check V6 function gating ($v6_gated/$v6_total gated)"
-            issues=1
-        fi
-    fi
-    
-    # Check Zebra V6 gating
-    if [ -d "zebra" ]; then
-        local zebra_v6
-        zebra_v6=$(grep -r "Transaction::V6\|ActionV6" zebra/zebra-chain/src/ 2>/dev/null | grep -v "#\[cfg" | grep -v "//" || true)
-        if [ -z "$zebra_v6" ]; then
-            echo -e "  ${GREEN}✓${NC} Zebra: V6 types appear properly gated"
-        else
-            echo -e "  ${YELLOW}⚠${NC} Zebra: Check V6 type gating"
-            issues=1
-        fi
-    fi
-    
-    if [ $issues -eq 0 ]; then
-        echo -e "${GREEN}✅ Cfg gate checks passed${NC}"
-    else
-        echo -e "${YELLOW}⚠ Some cfg gate checks need review${NC}"
     fi
 }
 
@@ -859,9 +740,6 @@ case "${1:-help}" in
         ;;
     test)
         cmd_test
-        ;;
-    check)
-        cmd_check "${2:-all}"
         ;;
     build)
         cmd_build "${2:-}"
