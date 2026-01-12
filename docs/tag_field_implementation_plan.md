@@ -5,13 +5,13 @@
 
 ## Overview
 
-| Component           | Repository       | Key Files                           | Status         |
-| ------------------- | ---------------- | ----------------------------------- | -------------- |
-| Protocol layer      | `orchard/`       | `src/action.rs`, `src/tag.rs`       | ✅ Done        |
-| Transaction builder | `librustzcash/`  | `zcash_primitives/src/transaction/` | ✅ Done        |
-| Node parsing        | `zebra/`         | `zebra-chain/src/orchard/`          | ✅ Done        |
-| Indexing            | `zaino/`         | `zaino-state/src/`                  | ✅ Done        |
-| Wallet CLI          | `zcash-devtool/` | `src/`                              | 🔲 Not started |
+| Component           | Repository       | Key Files                           | Status  |
+| ------------------- | ---------------- | ----------------------------------- | ------- |
+| Protocol layer      | `orchard/`       | `src/action.rs`, `src/tag.rs`       | ✅ Done |
+| Transaction builder | `librustzcash/`  | `zcash_primitives/src/transaction/` | ✅ Done |
+| Node parsing        | `zebra/`         | `zebra-chain/src/orchard/`          | ✅ Done |
+| Indexing            | `zaino/`         | `zaino-state/src/`                  | ✅ Done |
+| Wallet CLI          | `zcash-devtool/` | `src/commands/wallet/tag_keys.rs`   | 🔶 Impl |
 
 ## Critical Requirement: NU7 Gating
 
@@ -234,14 +234,74 @@ cargo build --release -p zcash-devtool
 
 ---
 
-## Phase 5: Wallet CLI (zcash-devtool)
+## Phase 5: Wallet CLI (zcash-devtool) 🔶
 
-**After Phases 1-4 are complete**, implement wallet integration:
+**Status**: Implemented (needs e2e testing)
 
-- [ ] Tag key derivation from FVK
-- [ ] `tag-keys show/export/generate/verify` commands
-- [ ] `scan-tags` command using PIR pre-filtering
-- [ ] Transaction sending with tags
+### What was implemented
+
+| File                               | Change                                             |
+| ---------------------------------- | -------------------------------------------------- |
+| `src/commands/wallet/tag_keys.rs`  | TaggingKey derivation from Orchard FVK via BLAKE2b |
+| `src/commands/wallet/tag_keys.rs`  | `show`, `export`, `generate`, `verify` subcommands |
+| `src/commands/wallet/scan_tags.rs` | PIR-based scan with tag pre-filtering              |
+| `src/commands/wallet.rs`           | Added `TagKeys` and `ScanTags` to Command enum     |
+| `src/main.rs`                      | Wired up new commands                              |
+
+### Commands
+
+```bash
+# Display tagging key for an account
+zcash-devtool wallet tag-keys show [--account-id UUID]
+
+# Export tagging key in various formats
+zcash-devtool wallet tag-keys export [--account-id UUID] [--format hex|base64|json]
+
+# Generate detection tags for specific indices
+zcash-devtool wallet tag-keys generate [--account-id UUID] --start 0 --count 100
+
+# Verify a tag matches an index
+zcash-devtool wallet tag-keys verify [--account-id UUID] --tag <hex> --index <n>
+
+# Scan blockchain with PIR tag pre-filtering
+zcash-devtool wallet scan-tags [--account-id UUID] --start-height 1 --tag-window 1000
+```
+
+### Tag Key Derivation
+
+The tagging key is derived deterministically from the Orchard FVK:
+
+```rust
+let key = BLAKE2b(personalization: "Zcash_TagKeyDerv", input: fvk_bytes)
+let tagging_key = TaggingKey::from_bytes(key[0..32])
+```
+
+**Completed:**
+
+- [x] Tag key derivation from FVK (BLAKE2b with personalization)
+- [x] `tag-keys show` - display tag key information
+- [x] `tag-keys export` - export in hex/base64/json formats
+- [x] `tag-keys generate` - generate tags for index range
+- [x] `tag-keys verify` - verify tag matches index
+- [x] `scan-tags` command using PIR pre-filtering
+- [x] Transaction sending with tags (handled by orchard builder automatically)
+
+### Testing Required
+
+```bash
+# 1. Start NU7 regtest
+./dev up --nu7
+
+# 2. Init wallet and generate account
+zcash-devtool wallet init -w /tmp/test-wallet
+zcash-devtool wallet generate-account -w /tmp/test-wallet
+
+# 3. Verify tag-keys commands work
+zcash-devtool wallet -w /tmp/test-wallet tag-keys show
+zcash-devtool wallet -w /tmp/test-wallet tag-keys generate --count 5
+
+# 4. Fund wallet, send V6 transaction with tags, verify scan-tags detects it
+```
 
 ---
 
@@ -282,7 +342,7 @@ fn v6_with_tags_round_trip() {
 - [x] Tag field included in V6 action serialization
 - [x] Tag field NOT included in V5 action serialization
 - [x] V5 builds without NU7 flags (`cargo check -p zebra-chain`)
-- [ ] End-to-end V6 transaction with tags (requires Phase 5)
+- [ ] End-to-end V6 transaction with tags (needs testing)
 
 ---
 
