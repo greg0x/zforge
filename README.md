@@ -51,12 +51,13 @@ cd zforge
 ./dev setup     # Initialize submodules, configure remotes
 
 # Services
-./dev up        # Start all services (zebra + zaino)
-./dev stop      # Stop all services
-./dev restart   # Restart services
-./dev status    # Show service status
-./dev logs      # Follow all logs
-./dev logs zaino  # Follow specific service
+./dev up              # Start all services (zebra + zaino)
+./dev up --nu7        # Start with NU7/V6 transaction support
+./dev stop            # Stop all services
+./dev restart [--nu7] # Restart services
+./dev status          # Show service status
+./dev logs            # Follow all logs
+./dev logs zaino      # Follow specific service
 
 # Development
 ./dev build     # Build zcash-devtool
@@ -94,7 +95,7 @@ The `--nu7` flag sets `RUSTFLAGS='--cfg zcash_unstable="nu7"'` which enables:
 - PIR-based transaction detection for mobile wallets
 - Reduced bandwidth/battery usage via server-side filtering
 
-The regtest configuration already has NU7 activated at block 1.
+**Regtest activation heights:** Canopy=1, NU5=2, NU6=3, NU6.1=4, **NU7=5**
 
 ## What the Tests Verify
 
@@ -111,15 +112,15 @@ The regtest configuration already has NU7 activated at block 1.
 # 1. Start feature branch
 ./dev git branch add-tag-field    # Creates feature/add-tag-field in orchard + librustzcash
 
-# 2. Start services
-./dev up
+# 2. Start services (use --nu7 for V6/tag work)
+./dev up --nu7
 
 # 3. Make changes
 cd orchard
 # ... edit src/action.rs ...
 
 # 4. Rebuild and test
-./dev restart                     # Picks up orchard changes
+./dev restart --nu7               # Picks up orchard changes with NU7
 ./dev test
 
 # 5. Commit and push
@@ -132,7 +133,8 @@ cd orchard
 ```bash
 # Via ./dev (recommended)
 ./dev up                    # Start all services
-./dev restart               # Restart all
+./dev up --nu7              # Start with NU7/V6 support
+./dev restart --nu7         # Restart with NU7/V6 support
 ./dev stop                  # Stop all
 ./dev logs zaino            # Follow one service's logs
 
@@ -144,6 +146,9 @@ overmind echo zebra         # Follow specific service
 ### Manual Execution
 
 ```bash
+# For NU7/V6 work, set this first:
+export RUSTFLAGS='--cfg zcash_unstable="nu7"'
+
 # Terminal 1 - Zebra
 cargo run --release -p zebrad --features internal-miner \
   --manifest-path zebra/Cargo.toml -- -c config/zebra-regtest.toml
