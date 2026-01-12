@@ -42,7 +42,7 @@
 | `src/note_encryption.rs`    | CompactAction with optional tag field            |
 | `src/bundle/commitments.rs` | Tag NOT included in txid hash (ZIP-244 compat)   |
 
-### librustzcash (6 commits on feature/tag-field)
+### librustzcash (7 commits on feature/tag-field)
 
 | File                                   | Change                                         |
 | -------------------------------------- | ---------------------------------------------- |
@@ -160,15 +160,13 @@ RUSTFLAGS='--cfg zcash_unstable="nu7"' cargo test -p zebra-chain --features tx_v
 
 **Status**: Complete
 
-### Build Configuration
+### Quick Start
 
 ```bash
-# Build with NU7 features
-./dev build --nu7
+# Start the full stack with NU7 support
+./dev up --nu7
 
-# Or manually:
-export RUSTFLAGS='--cfg zcash_unstable="nu7"'
-cargo build --features tx_v6
+# Mining begins immediately, NU7 activates at block 5
 ```
 
 ### Regtest Configuration
@@ -176,29 +174,63 @@ cargo build --features tx_v6
 In `config/zebra-regtest.toml`:
 
 ```toml
+# Canopy at height 1 (required for internal miner)
+# Earlier upgrades use regtest defaults (all at genesis)
 [network.testnet_parameters.activation_heights]
-NU5 = 1
-NU6 = 1
-"NU6.1" = 1
-NU7 = 1
+Canopy = 1
+NU5 = 2
+NU6 = 3
+"NU6.1" = 4
+NU7 = 5
 ```
 
-In librustzcash `LocalNetwork` (already supports NU7 via cfg guard):
+### Zebra Fixes for NU7
+
+Two fixes were required to enable NU7 mining:
+
+| File                                            | Issue                                    | Fix                                                                                    |
+| ----------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------- |
+| `zebra-chain/src/parameters/network_upgrade.rs` | NU7 branch ID only enabled for tests     | Changed `#[cfg(any(test, feature = "zebra-test"))]` → `#[cfg(zcash_unstable = "nu7")]` |
+| `zebra-network/src/constants.rs`                | Protocol version 170_140 too low for NU7 | Added conditional `170_150` when built with NU7 flag                                   |
+
+### librustzcash LocalNetwork Example
 
 ```rust
 let regtest = LocalNetwork {
-    // ... earlier upgrades at block 1 ...
+    overwinter: Some(BlockHeight::from_u32(1)),
+    sapling: Some(BlockHeight::from_u32(1)),
+    blossom: Some(BlockHeight::from_u32(1)),
+    heartwood: Some(BlockHeight::from_u32(1)),
+    canopy: Some(BlockHeight::from_u32(1)),
+    nu5: Some(BlockHeight::from_u32(1)),
+    nu6: Some(BlockHeight::from_u32(1)),
     nu6_1: Some(BlockHeight::from_u32(1)),
     #[cfg(zcash_unstable = "nu7")]
-    nu7: Some(BlockHeight::from_u32(1)),  // Enable NU7 from block 1
+    nu7: Some(BlockHeight::from_u32(1)),
 };
+```
+
+### Manual Build
+
+```bash
+# Set the flag for all components
+export RUSTFLAGS='--cfg zcash_unstable="nu7"'
+
+# Build individually
+cargo build --release -p zebrad --features internal-miner
+cargo build --release -p zainod
+cargo build --release -p zcash-devtool
 ```
 
 **Completed:**
 
-- [x] Configure librustzcash LocalNetwork for NU7 (doc example updated)
-- [x] Configure Zebra regtest for NU7 activation (NU6, NU6.1, NU7 at block 1)
-- [x] Document build flags in README
+- [x] Add `./dev up --nu7` and `./dev restart --nu7` commands
+- [x] Configure Zebra regtest for NU7 activation at height 5
+- [x] Fix Zebra NU7 branch ID (0xffffffff) to be available in NU7 builds
+- [x] Fix Zebra protocol version (170_150) for NU7 builds
+- [x] Document LocalNetwork NU7 configuration in librustzcash
+- [x] Document NU7 build process in README
+- [x] Verify mining works continuously past NU7 activation
 
 ---
 
@@ -244,12 +276,13 @@ fn v6_with_tags_round_trip() {
 
 ## Checklist Before Merge
 
-- [ ] V5 transactions serialize identically to upstream
-- [ ] All V6/tag code gated with `#[cfg(zcash_unstable = "nu7")]`
-- [ ] NU7 activates correctly on regtest
-- [ ] Tag field included in V6 action serialization
-- [ ] Tag field NOT included in V5 action serialization
-- [ ] V5 builds without NU7 flags (`cargo check -p zebra-chain`)
+- [x] V5 transactions serialize identically to upstream
+- [x] All V6/tag code gated with `#[cfg(zcash_unstable = "nu7")]`
+- [x] NU7 activates correctly on regtest (`./dev up --nu7`)
+- [x] Tag field included in V6 action serialization
+- [x] Tag field NOT included in V5 action serialization
+- [x] V5 builds without NU7 flags (`cargo check -p zebra-chain`)
+- [ ] End-to-end V6 transaction with tags (requires Phase 5)
 
 ---
 
