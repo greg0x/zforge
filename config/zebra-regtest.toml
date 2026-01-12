@@ -4,9 +4,16 @@
 [network]
 network = "Regtest"
 
-# Activate NU5 at block 1 (Canopy always at 1)
+# Activate Canopy at height 1 so the internal miner can generate coinbase transactions
+# (Zebra only supports post-Canopy coinbase generation)
+# Earlier upgrades use Regtest defaults (all at height 0 with Genesis)
+# NU7 requires building with: RUSTFLAGS='--cfg zcash_unstable="nu7"'
 [network.testnet_parameters.activation_heights]
-NU5 = 1
+Canopy = 1
+NU5 = 2
+NU6 = 3
+"NU6.1" = 4
+NU7 = 5
 
 [state]
 # Ephemeral state - fresh chain each restart

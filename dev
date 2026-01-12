@@ -20,12 +20,12 @@ print_help() {
     echo "Usage: ./dev <command>"
     echo ""
     echo "Services:"
-    echo "  setup     Check tools, init submodules, configure remotes"
-    echo "  up        Start all services (zebra + zaino)"
-    echo "  stop      Stop all services"
-    echo "  restart   Restart all services"
-    echo "  status    Show service status"
-    echo "  logs      Follow service logs"
+    echo "  setup        Check tools, init submodules, configure remotes"
+    echo "  up [--nu7]   Start all services (--nu7 enables V6/tag support)"
+    echo "  stop         Stop all services"
+    echo "  restart [--nu7]  Restart all services"
+    echo "  status       Show service status"
+    echo "  logs         Follow service logs"
     echo ""
     echo "Development:"
     echo "  build [--nu7]   Build zcash-devtool (--nu7 enables V6/tag support)"
@@ -130,13 +130,26 @@ cmd_setup() {
 }
 
 cmd_up() {
-    echo -e "${BLUE}Starting services...${NC}"
+    local nu7_mode="${1:-}"
+    
+    if [ "$nu7_mode" = "--nu7" ]; then
+        echo -e "${BLUE}Starting services with NU7/V6 support...${NC}"
+        export RUSTFLAGS='--cfg zcash_unstable="nu7"'
+    else
+        echo -e "${BLUE}Starting services...${NC}"
+    fi
+    
     if ! command -v overmind &> /dev/null; then
         echo -e "${RED}Error: overmind not found. Install with: brew install overmind${NC}"
         exit 1
     fi
     overmind start -D
-    echo -e "${GREEN}Services started. Use './dev logs' to follow output.${NC}"
+    
+    if [ "$nu7_mode" = "--nu7" ]; then
+        echo -e "${GREEN}Services started with NU7/V6 support. Use './dev logs' to follow output.${NC}"
+    else
+        echo -e "${GREEN}Services started. Use './dev logs' to follow output.${NC}"
+    fi
 }
 
 cmd_stop() {
@@ -154,12 +167,25 @@ cmd_stop() {
 }
 
 cmd_restart() {
-    echo -e "${BLUE}Restarting services...${NC}"
+    local nu7_mode="${1:-}"
+    
+    if [ "$nu7_mode" = "--nu7" ]; then
+        echo -e "${BLUE}Restarting services with NU7/V6 support...${NC}"
+        export RUSTFLAGS='--cfg zcash_unstable="nu7"'
+    else
+        echo -e "${BLUE}Restarting services...${NC}"
+    fi
+    
     overmind stop || true
     rm -f .overmind.sock
     sleep 2
     overmind start -D
-    echo -e "${GREEN}Services restarted.${NC}"
+    
+    if [ "$nu7_mode" = "--nu7" ]; then
+        echo -e "${GREEN}Services restarted with NU7/V6 support.${NC}"
+    else
+        echo -e "${GREEN}Services restarted.${NC}"
+    fi
 }
 
 cmd_test() {
@@ -699,13 +725,13 @@ case "${1:-help}" in
         cmd_setup
         ;;
     up|start)
-        cmd_up
+        cmd_up "${2:-}"
         ;;
     stop)
         cmd_stop
         ;;
     restart)
-        cmd_restart
+        cmd_restart "${2:-}"
         ;;
     test)
         cmd_test

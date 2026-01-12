@@ -28,6 +28,7 @@ cd zforge
 ```
 
 The `./dev fork` command will:
+
 - Fork zforge and all 5 submodules to your GitHub account
 - Configure `origin` → your fork, `upstream` → official repos
 - Update `.gitmodules` to use your forks
@@ -68,6 +69,32 @@ cd zforge
 ./dev git push            # Push all repos (to your forks)
 ./dev git sync            # Fetch upstream, show drift
 ```
+
+## Running with NU7 (Experimental)
+
+NU7 features (including the tag field for Orchard actions) require special build flags:
+
+```bash
+# Start the full stack with NU7 support (recommended)
+./dev up --nu7
+
+# Or build individual components with NU7:
+./dev build --nu7              # Build zcash-devtool with NU7
+
+# Manual builds:
+export RUSTFLAGS='--cfg zcash_unstable="nu7"'
+cargo build --release -p zebrad --features internal-miner
+cargo build --release -p zainod
+cargo build --release -p zcash-devtool
+```
+
+The `--nu7` flag sets `RUSTFLAGS='--cfg zcash_unstable="nu7"'` which enables:
+
+- V6 transaction format with 16-byte tag field in Orchard actions
+- PIR-based transaction detection for mobile wallets
+- Reduced bandwidth/battery usage via server-side filtering
+
+The regtest configuration already has NU7 activated at block 1.
 
 ## What the Tests Verify
 
@@ -157,7 +184,7 @@ zforge/
 ├── mise.toml           # Tool versions (protobuf)
 ├── Procfile            # overmind process definitions
 ├── zebra/              # Full node (submodule)
-├── zaino/              # Indexer (submodule)  
+├── zaino/              # Indexer (submodule)
 ├── zcash-devtool/      # Wallet CLI (submodule)
 ├── orchard/            # Orchard protocol (submodule) ← tag field goes here
 ├── librustzcash/       # Zcash primitives (submodule)
@@ -170,11 +197,11 @@ zforge/
 
 ## Configuration
 
-| File | Purpose |
-|------|---------|
+| File                        | Purpose                                 |
+| --------------------------- | --------------------------------------- |
 | `config/zebra-regtest.toml` | Zebra: Regtest, internal miner, no auth |
-| `config/zaino-regtest.toml` | Zaino: connects to local Zebra |
-| `config/*-docker.toml` | Docker deployment variants |
+| `config/zaino-regtest.toml` | Zaino: connects to local Zebra          |
+| `config/*-docker.toml`      | Docker deployment variants              |
 
 **Default: Regtest mode** - No sync, instant blocks, isolated network.
 
@@ -182,14 +209,15 @@ zforge/
 
 After running `./dev fork`, each repo has two remotes:
 
-| Remote | Points To | Purpose |
-|--------|-----------|---------|
-| `origin` | Your fork | Push your changes here |
-| `upstream` | Official repo | Sync upstream changes |
+| Remote     | Points To     | Purpose                |
+| ---------- | ------------- | ---------------------- |
+| `origin`   | Your fork     | Push your changes here |
+| `upstream` | Official repo | Sync upstream changes  |
 
 **Submodule upstreams:**
+
 - `zebra` → ZcashFoundation/zebra
-- `zaino` → zingolabs/zaino  
+- `zaino` → zingolabs/zaino
 - `orchard` → zcash/orchard
 - `librustzcash` → zcash/librustzcash
 - `zcash-devtool` → zcash/zcash-devtool
@@ -197,6 +225,7 @@ After running `./dev fork`, each repo has two remotes:
 ## Branch Workflow
 
 **Branches:**
+
 - `main` / `dev` - Zforge development (pinned to compatible versions)
 - `feature/*` - Your feature branches
 - `pr/*` - For upstream contributions (branch from `upstream/main`)
@@ -220,13 +249,13 @@ After running `./dev fork`, each repo has two remotes:
 
 ## Version Compatibility
 
-| Component | Version | Constraint |
-|-----------|---------|------------|
-| zebra | main | - |
-| zaino | main | - |
-| orchard | 0.11.x | Zebra compatibility |
-| librustzcash | zcash_transparent-0.6.3 | Zebra compatibility |
-| zcash-devtool | main | - |
+| Component     | Version                 | Constraint          |
+| ------------- | ----------------------- | ------------------- |
+| zebra         | main                    | -                   |
+| zaino         | main                    | -                   |
+| orchard       | 0.11.x                  | Zebra compatibility |
+| librustzcash  | zcash_transparent-0.6.3 | Zebra compatibility |
+| zcash-devtool | main                    | -                   |
 
 Run `./scripts/setup-fork-branches.sh` to verify/reset submodule versions.
 
@@ -246,16 +275,19 @@ Uses `config/*-docker.toml` with container-appropriate paths.
 Run `./dev setup` to check all prerequisites.
 
 **Required:**
+
 - **Rust:** Managed per-submodule via `rust-toolchain.toml` (rustup handles automatically)
 - **tmux:** `brew install tmux` (required by overmind)
 - **overmind:** `brew install overmind` (process manager)
 - **protobuf:** `brew install protobuf` (for gRPC compilation)
 
 **Required for `./dev fork`:**
+
 - **gh:** `brew install gh` (GitHub CLI for forking repos)
 - Run `gh auth login` to authenticate
 
 **Optional:**
+
 - **mise:** `https://mise.jdx.dev` (manages tool versions via `mise.toml`)
 
 ## License

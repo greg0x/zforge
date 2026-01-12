@@ -156,7 +156,9 @@ RUSTFLAGS='--cfg zcash_unstable="nu7"' cargo test -p zebra-chain --features tx_v
 
 ---
 
-## Phase 4: NU7 Regtest Activation
+## Phase 4: NU7 Regtest Activation ✅
+
+**Status**: Complete
 
 ### Build Configuration
 
@@ -171,7 +173,17 @@ cargo build --features tx_v6
 
 ### Regtest Configuration
 
-In librustzcash `LocalNetwork`:
+In `config/zebra-regtest.toml`:
+
+```toml
+[network.testnet_parameters.activation_heights]
+NU5 = 1
+NU6 = 1
+"NU6.1" = 1
+NU7 = 1
+```
+
+In librustzcash `LocalNetwork` (already supports NU7 via cfg guard):
 
 ```rust
 let regtest = LocalNetwork {
@@ -182,11 +194,11 @@ let regtest = LocalNetwork {
 };
 ```
 
-**Tasks:**
+**Completed:**
 
-- [ ] Configure librustzcash LocalNetwork for NU7
-- [ ] Configure Zebra regtest for NU7 activation
-- [ ] Document build flags in README
+- [x] Configure librustzcash LocalNetwork for NU7 (doc example updated)
+- [x] Configure Zebra regtest for NU7 activation (NU6, NU6.1, NU7 at block 1)
+- [x] Document build flags in README
 
 ---
 
