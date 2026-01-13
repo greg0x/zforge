@@ -21,15 +21,16 @@ print_help() {
     echo ""
     echo "Services:"
     echo "  setup        Check tools, init submodules, configure remotes"
-    echo "  up [--nu7]   Start all services (--nu7 enables V6/tag support)"
+    echo "  up           Start all services (NU7/V6 enabled, resets wallet)"
     echo "  stop         Stop all services"
-    echo "  restart [--nu7]  Restart all services"
+    echo "  restart      Restart all services"
     echo "  status       Show service status"
     echo "  logs         Follow service logs"
+    echo "  reset-wallet Clear wallet state (for fresh chain)"
     echo ""
     echo "Development:"
-    echo "  build [--nu7]   Build zcash-devtool (--nu7 enables V6/tag support)"
-    echo "  test            Run integration tests"
+    echo "  build        Build zcash-devtool (NU7/V6 enabled by default)"
+    echo "  test         Run integration tests"
     echo ""
     echo "Git (multi-repo):"
     echo "  git status             Status across all repos"
@@ -48,9 +49,9 @@ print_help() {
     echo "Examples:"
     echo "  ./dev fork                           # Fork all repos (new contributor)"
     echo "  ./dev setup                          # First-time setup"
-    echo "  ./dev up                             # Start services"
+    echo "  ./dev up                             # Start services (NU7/V6 enabled)"
     echo "  ./dev git branch add-tag-field       # Start feature"
-    echo "  ./dev build --nu7                    # Build with NU7/V6 support"
+    echo "  ./dev build                          # Build zcash-devtool"
     echo "  ./dev git log                        # Show commits on current feature branch"
 }
 
@@ -129,15 +130,23 @@ cmd_setup() {
     echo "  3. ./dev test        # Verify everything works"
 }
 
-cmd_up() {
-    local nu7_mode="${1:-}"
-    
-    if [ "$nu7_mode" = "--nu7" ]; then
-        echo -e "${BLUE}Starting services with NU7/V6 support...${NC}"
-        export RUSTFLAGS='--cfg zcash_unstable="nu7"'
+cmd_reset_wallet() {
+    echo -e "${BLUE}Resetting wallet state...${NC}"
+    if [ -d "zec_sqlite_wallet" ]; then
+        rm -f zec_sqlite_wallet/data.sqlite zec_sqlite_wallet/blockmeta.sqlite zec_sqlite_wallet/keys.toml
+        rm -rf zec_sqlite_wallet/blocks
+        echo -e "${GREEN}Wallet state cleared.${NC}"
     else
-        echo -e "${BLUE}Starting services...${NC}"
+        echo -e "${YELLOW}No wallet directory found.${NC}"
     fi
+}
+
+cmd_up() {
+    echo -e "${BLUE}Starting services with NU7/V6 support...${NC}"
+    export RUSTFLAGS='--cfg zcash_unstable="nu7"'
+    
+    # Reset wallet state to match fresh chain
+    cmd_reset_wallet
     
     if ! command -v overmind &> /dev/null; then
         echo -e "${RED}Error: overmind not found. Install with: brew install overmind${NC}"
@@ -145,47 +154,45 @@ cmd_up() {
     fi
     overmind start -D
     
-    if [ "$nu7_mode" = "--nu7" ]; then
-        echo -e "${GREEN}Services started with NU7/V6 support. Use './dev logs' to follow output.${NC}"
-    else
-        echo -e "${GREEN}Services started. Use './dev logs' to follow output.${NC}"
-    fi
+    echo -e "${GREEN}Services started. Use './dev logs' to follow output.${NC}"
 }
 
 cmd_stop() {
     echo -e "${BLUE}Stopping services...${NC}"
+    
+    # Try graceful shutdown first
     if [ -S .overmind.sock ]; then
-        overmind quit || true
+        overmind quit 2>/dev/null || true
         # Wait for overmind to exit
         for i in {1..10}; do
             [ ! -S .overmind.sock ] && break
             sleep 0.5
         done
     fi
+    
+    # Kill any remaining overmind processes for this project
+    pkill -f "overmind.*zforge" 2>/dev/null || true
+    
+    # Kill any orphaned zebra/zaino processes started by overmind
+    pkill -f "zebrad.*zebra-regtest" 2>/dev/null || true
+    pkill -f "zainod.*zaino-regtest" 2>/dev/null || true
+    
+    # Clean up socket file
     rm -f .overmind.sock
+    
     echo -e "${GREEN}Services stopped.${NC}"
 }
 
 cmd_restart() {
-    local nu7_mode="${1:-}"
-    
-    if [ "$nu7_mode" = "--nu7" ]; then
-        echo -e "${BLUE}Restarting services with NU7/V6 support...${NC}"
-        export RUSTFLAGS='--cfg zcash_unstable="nu7"'
-    else
-        echo -e "${BLUE}Restarting services...${NC}"
-    fi
+    echo -e "${BLUE}Restarting services with NU7/V6 support...${NC}"
+    export RUSTFLAGS='--cfg zcash_unstable="nu7"'
     
     overmind stop || true
     rm -f .overmind.sock
     sleep 2
     overmind start -D
     
-    if [ "$nu7_mode" = "--nu7" ]; then
-        echo -e "${GREEN}Services restarted with NU7/V6 support.${NC}"
-    else
-        echo -e "${GREEN}Services restarted.${NC}"
-    fi
+    echo -e "${GREEN}Services restarted.${NC}"
 }
 
 cmd_test() {
@@ -199,27 +206,14 @@ cmd_test() {
 }
 
 cmd_build() {
-    local nu7_mode="${1:-}"
-    
-    if [ "$nu7_mode" = "--nu7" ]; then
-        echo -e "${BLUE}Building zcash-devtool with NU7 features...${NC}"
-        echo -e "${YELLOW}Note: NU7 is experimental and enables V6 transactions with tags${NC}"
-        echo ""
-        export RUSTFLAGS='--cfg zcash_unstable="nu7"'
-        local features="--features tx_v6"
-    else
-        echo -e "${BLUE}Building zcash-devtool...${NC}"
-        local features=""
-    fi
+    echo -e "${BLUE}Building zcash-devtool with NU7/V6 support...${NC}"
+    export RUSTFLAGS='--cfg zcash_unstable="nu7"'
     
     if [ -d "zcash-devtool" ]; then
         cd zcash-devtool
-        cargo build --release $features
+        cargo build --release
         cd ..
         echo -e "${GREEN}✅ zcash-devtool built: ./zcash-devtool/target/release/zcash-devtool${NC}"
-        if [ "$nu7_mode" = "--nu7" ]; then
-            echo -e "${GREEN}   (with NU7/V6 support enabled)${NC}"
-        fi
     else
         echo -e "${RED}Error: zcash-devtool directory not found${NC}"
         exit 1
@@ -725,19 +719,22 @@ case "${1:-help}" in
         cmd_setup
         ;;
     up|start)
-        cmd_up "${2:-}"
+        cmd_up
         ;;
     stop)
         cmd_stop
         ;;
     restart)
-        cmd_restart "${2:-}"
+        cmd_restart
+        ;;
+    reset-wallet)
+        cmd_reset_wallet
         ;;
     test)
         cmd_test
         ;;
     build)
-        cmd_build "${2:-}"
+        cmd_build
         ;;
     status)
         cmd_status

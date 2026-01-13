@@ -3,15 +3,51 @@
 > Protocol change to add 16-byte unencrypted detection tags to Orchard actions.
 > **Requires NU7 network upgrade and V6 transaction format.**
 
+## Current Status (2026-01-13)
+
+🎉 **V6 transactions with tags are working end-to-end!**
+
+Successfully completed:
+
+- V6 shielding transaction created and mined on regtest
+- Tag bytes present in transaction serialization
+- Wallet can send/receive Orchard notes via V6 transactions
+
+### Immediate Next Steps
+
+1. **Update Zebra RPC** - `getrawtransaction` doesn't expose `tag` field in JSON (see Phase 6)
+2. **Test tag-keys commands** - `show`, `export`, `generate`, `verify`
+3. **Test scan-tags** - PIR-based scanning with tag pre-filtering
+4. **Clean up debug code** - Remove debug println! statements from shield.rs
+
+### DX Improvements (Nice to Have)
+
+- **Eliminate 100-block coinbase wait** - Currently must wait ~105 blocks before mining rewards are spendable. Options:
+  - Faucet approach: separate miner wallet sends regular (non-coinbase) ZEC to test wallet
+  - Pre-mine script: generate 110+ blocks before starting tests
+  - Track coinbase in wallet DB: apply maturity only to actual coinbase UTXOs, not all transparent
+
+### Issues Fixed During Integration
+
+| Issue                           | Root Cause                                                                         | Fix                                                            |
+| ------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `ScriptInvalid` on V6 tx        | `zip-233` feature enabled in zcash-devtool but not Zebra, causing sighash mismatch | Enabled `zip-233` in `zebra-chain/Cargo.toml`                  |
+| `immature coinbase spend`       | Wallet selecting UTXOs too close to chain tip                                      | Increased confirmations from 100→105 in shield.rs              |
+| Stale wallet state              | Wallet DB persists across chain restarts                                           | Added `./dev reset-wallet` command, auto-reset on `./dev up`   |
+| Transparent input size mismatch | P2PKH calculated as 149 bytes vs ZIP-317 standard 150                              | Fixed `serialized_len()` in `zcash_transparent/src/builder.rs` |
+
+---
+
 ## Overview
 
-| Component           | Repository       | Key Files                           | Status  |
-| ------------------- | ---------------- | ----------------------------------- | ------- |
-| Protocol layer      | `orchard/`       | `src/action.rs`, `src/tag.rs`       | ✅ Done |
-| Transaction builder | `librustzcash/`  | `zcash_primitives/src/transaction/` | ✅ Done |
-| Node parsing        | `zebra/`         | `zebra-chain/src/orchard/`          | ✅ Done |
-| Indexing            | `zaino/`         | `zaino-state/src/`                  | ✅ Done |
-| Wallet CLI          | `zcash-devtool/` | `src/commands/wallet/tag_keys.rs`   | 🔶 Impl |
+| Component           | Repository       | Key Files                           | Status        |
+| ------------------- | ---------------- | ----------------------------------- | ------------- |
+| Protocol layer      | `orchard/`       | `src/action.rs`, `src/tag.rs`       | ✅ Done       |
+| Transaction builder | `librustzcash/`  | `zcash_primitives/src/transaction/` | ✅ Done       |
+| Node parsing        | `zebra/`         | `zebra-chain/src/orchard/`          | ✅ Done       |
+| Indexing            | `zaino/`         | `zaino-state/src/`                  | ✅ Done       |
+| Wallet CLI          | `zcash-devtool/` | `src/commands/wallet/shield.rs`     | ✅ V6 Working |
+| RPC tag exposure    | `zebra/`         | `zebra-rpc/src/methods/types/`      | 🔶 TODO       |
 
 ## Critical Requirement: NU7 Gating
 
@@ -234,9 +270,9 @@ cargo build --release -p zcash-devtool
 
 ---
 
-## Phase 5: Wallet CLI (zcash-devtool) 🔶
+## Phase 5: Wallet CLI (zcash-devtool) ✅
 
-**Status**: Implemented (needs e2e testing)
+**Status**: V6 transactions working, tag-keys commands need testing
 
 ### What was implemented
 
@@ -289,18 +325,66 @@ let tagging_key = TaggingKey::from_bytes(key[0..32])
 ### Testing Required
 
 ```bash
-# 1. Start NU7 regtest
-./dev up --nu7
+# 1. Start NU7 regtest (resets wallet automatically)
+./dev up
 
-# 2. Init wallet and generate account
-zcash-devtool wallet init -w /tmp/test-wallet
-zcash-devtool wallet generate-account -w /tmp/test-wallet
+# 2. Init wallet
+./zcash-devtool/target/release/zcash-devtool wallet init \
+  --name test --identity test-id.age --network regtest \
+  -s localhost:8137 --mnemonic "abandon ... art"
 
-# 3. Verify tag-keys commands work
-zcash-devtool wallet -w /tmp/test-wallet tag-keys show
-zcash-devtool wallet -w /tmp/test-wallet tag-keys generate --count 5
+# 3. Sync and check balance (wait for ~115 blocks for coinbase maturity)
+./zcash-devtool/target/release/zcash-devtool wallet sync -s localhost:8137
+./zcash-devtool/target/release/zcash-devtool wallet balance
 
-# 4. Fund wallet, send V6 transaction with tags, verify scan-tags detects it
+# 4. Shield funds (creates V6 transaction with tags)
+./zcash-devtool/target/release/zcash-devtool wallet shield \
+  -i test-id.age -s localhost:8137 --disable-tor --target-note-count 1
+
+# 5. Verify tag-keys commands
+./zcash-devtool/target/release/zcash-devtool wallet tag-keys show
+./zcash-devtool/target/release/zcash-devtool wallet tag-keys generate --count 5
+```
+
+### V6 Transaction Verified ✅
+
+```bash
+# Confirmed: Transaction version 6, tag bytes in serialization
+curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":"1","method":"getrawtransaction","params":["<txid>", 1]}' \
+  http://localhost:18232 | jq '.result.version'
+# Output: 6
+```
+
+---
+
+## Phase 6: Zebra RPC Tag Exposure 🔶
+
+**Status**: Not started
+
+The `getrawtransaction` RPC returns V6 transaction data but doesn't include the `tag` field in the JSON response.
+
+### Files to Update
+
+| File                                         | Change                                        |
+| -------------------------------------------- | --------------------------------------------- |
+| `zebra-rpc/src/methods/types/transaction.rs` | Add `tag: [u8; 16]` to `OrchardAction` struct |
+| `zebra-rpc/src/methods/types/transaction.rs` | Extract tag from action in conversion code    |
+
+### Current OrchardAction struct (missing tag)
+
+```rust
+pub struct OrchardAction {
+    cv: [u8; 32],
+    nullifier: [u8; 32],
+    rk: [u8; 32],
+    cm_x: [u8; 32],
+    ephemeral_key: [u8; 32],
+    enc_ciphertext: [u8; 580],
+    spend_auth_sig: [u8; 64],
+    out_ciphertext: [u8; 80],
+    // MISSING: tag: [u8; 16]
+}
 ```
 
 ---
@@ -338,11 +422,16 @@ fn v6_with_tags_round_trip() {
 
 - [x] V5 transactions serialize identically to upstream
 - [x] All V6/tag code gated with `#[cfg(zcash_unstable = "nu7")]`
-- [x] NU7 activates correctly on regtest (`./dev up --nu7`)
+- [x] NU7 activates correctly on regtest (`./dev up`)
 - [x] Tag field included in V6 action serialization
 - [x] Tag field NOT included in V5 action serialization
 - [x] V5 builds without NU7 flags (`cargo check -p zebra-chain`)
-- [ ] End-to-end V6 transaction with tags (needs testing)
+- [x] End-to-end V6 transaction with tags ✅ **Verified 2026-01-13**
+- [x] `zip-233` feature enabled in both zcash-devtool and Zebra
+- [ ] Zebra RPC exposes tag field in JSON response
+- [ ] Tag-keys commands tested (`show`, `export`, `generate`, `verify`)
+- [ ] Scan-tags PIR pre-filtering tested
+- [ ] Remove debug println! from shield.rs
 
 ---
 

@@ -27,6 +27,10 @@ target/
 
 # Test wallets
 .test-wallet/
+zec_sqlite_wallet/
+
+# Test identity files
+test-id.age
 
 # Config directory - ignore generated files, keep committed configs
 config/tls/

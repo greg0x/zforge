@@ -29,7 +29,7 @@ enable_cookie_auth = false
 [mining]
 # Internal miner for automatic block generation
 internal_miner = true
-miner_address = "t27eWDgjFYJGVXmzrXeVjnb5J3uXDM9xH9v"
+miner_address = "tmBsTi2xWTjUdEXnuTceL7fecEQKeWaPDJd"
 
 [tracing]
 filter = "info"
